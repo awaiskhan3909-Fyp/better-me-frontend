@@ -10,7 +10,7 @@ import {
   InputOTPSlot,
 } from "../components/ui/input-otp";
 import { toast } from "sonner";
-import { KeyRound, ArrowLeft, Mail, Lock, RefreshCw, CheckCircle2 } from "lucide-react";
+import { KeyRound, ArrowLeft, Mail, Lock, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import logo from "../../imports/Better_me_Logo.png";
 import { supabase } from "../services/supabaseClient";
 
@@ -21,6 +21,8 @@ export default function ForgotPassword() {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -234,13 +236,21 @@ export default function ForgotPassword() {
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                     <Input
                       id="newPassword"
-                      type="password"
+                      type={showNewPassword ? "text" : "password"}
                       placeholder="Minimum 6 characters"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="pl-9 rounded-xl h-11 border-slate-200"
+                      className="pl-9 pr-10 rounded-xl h-11 border-slate-200"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -251,13 +261,21 @@ export default function ForgotPassword() {
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                     <Input
                       id="confirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Re-enter your password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-9 rounded-xl h-11 border-slate-200"
+                      className="pl-9 pr-10 rounded-xl h-11 border-slate-200"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
