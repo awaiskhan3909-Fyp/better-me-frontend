@@ -117,12 +117,25 @@ export default function Login() {
                 </Link>
               </p>
             </div>
+
+            {/* Academic FYP Attribution */}
+            <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                🎓 BS Final Year Project (FYP)
+              </p>
+              <p className="text-xs text-slate-700 font-medium">
+                <strong>Team:</strong> Awais Khan • Saad Abdullah • Ajiya Asif
+              </p>
+              <p className="text-[11px] text-slate-500">
+                <strong>Supervisor:</strong> Mam Farnaz Akbar
+              </p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Disclaimer */}
         <p className="text-center text-xs text-slate-500 mt-6 px-4">
-          By signing in, you agree to our Terms of Service and Privacy Policy. Better me is a supportive tool and not a replacement for professional care.
+          By signing in, you agree to our Terms of Service and Privacy Policy. Better Me is a supportive tool and not a replacement for professional care.
         </p>
       </div>
     </div>

@@ -1,12 +1,35 @@
 import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
-import { Brain, Shield, TrendingUp, MessageCircle, Clock, Heart, Sparkles, Activity, Target, CheckCircle, ArrowRight, Zap } from "lucide-react";
+import { Brain, Shield, TrendingUp, MessageCircle, Clock, Heart, Sparkles, Activity, Target, CheckCircle, ArrowRight, Zap, GraduationCap, Users, Award, BookOpen } from "lucide-react";
 import logo from "../../imports/Better_me_Logo.png";
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-white">
+      {/* Top Academic FYP Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white text-xs py-2 px-4 border-b border-indigo-900/50">
+        <div className="container mx-auto flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="bg-primary/20 text-blue-200 border border-primary/30 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+              🎓 Final Year Project (FYP)
+            </span>
+            <span className="text-slate-300 hidden sm:inline">
+              Better Me: AI-Based Cognitive Distortion Detection and CBT Support System
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-slate-300 text-[11px]">
+            <span>
+              Supervisor: <strong className="text-white">Mam Farnaz Akbar</strong>
+            </span>
+            <span className="text-slate-500">•</span>
+            <span>
+              Team: <strong className="text-white">Awais Khan, Saad Abdullah, Ajiya Asif</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -97,6 +120,141 @@ export default function Landing() {
                     <p className="text-2xl font-bold text-slate-900">6</p>
                     <p className="text-sm text-slate-600">Distortions Detected</p>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FYP Project Overview & Academic Team Section */}
+      <section className="py-20 bg-gradient-to-b from-white via-indigo-50/30 to-slate-50 border-y border-slate-200/80">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 bg-indigo-100/80 text-indigo-900 border border-indigo-200/60 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider mb-3">
+              <GraduationCap className="w-4 h-4 text-indigo-700" />
+              Final Year Project (FYP) Overview
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
+              AI-Based Cognitive Distortion Detection & CBT Support System
+            </h2>
+            <p className="text-slate-600 text-sm md:text-base max-w-2xl mx-auto mt-2 leading-relaxed">
+              Developed as an undergraduate capstone Final Year Project, bridging clinical Cognitive Behavioral Therapy (CBT) with modern artificial intelligence.
+            </p>
+          </div>
+
+          {/* Project Pillars Grid */}
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow space-y-3">
+              <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-bold">
+                <Shield className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">The Problem & Safety</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Generic chatbots validate distorted thinking and hallucinate in crises. Better Me utilizes a fine-tuned BERT Safety Classifier to provide zero-tolerance triage and safe crisis deflection.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow space-y-3">
+              <div className="w-12 h-12 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center font-bold">
+                <Brain className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Clinical CBT Methodology</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Screens for Beck's 6 cognitive distortions (Catastrophizing, Mind Reading, etc.) and provides an interactive 5-column Socratic Thought Record to test thoughts against hard evidence.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow space-y-3">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-bold">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Fine-Tuned LLM & Memory</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Powered by a fine-tuned open-source Llama-3 model with a longitudinal clinical memory engine that tracks recurring triggers, past breakthroughs, and belief conviction reductions over time.
+              </p>
+            </div>
+          </div>
+
+          {/* Supervisor & Group Members Presentation */}
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-md">
+            <div className="flex flex-col lg:flex-row items-stretch gap-8">
+              {/* Supervisor Spotlight */}
+              <div className="lg:w-1/3 bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-white rounded-2xl p-6 flex flex-col justify-between shadow-md">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 bg-white/20 text-blue-200 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-4">
+                    <Award className="w-3.5 h-3.5" />
+                    Project Supervisor
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-1">Mam Farnaz Akbar</h3>
+                  <p className="text-blue-200 text-xs font-medium">Assistant Professor & FYP Supervisor</p>
+                  <p className="text-slate-300 text-xs mt-4 leading-relaxed">
+                    Under the mentorship and supervision of Mam Farnaz Akbar, providing research direction, clinical ethical oversight, and academic project evaluation.
+                  </p>
+                </div>
+                <div className="pt-6 border-t border-white/10 flex items-center gap-2 text-xs text-blue-200 font-medium">
+                  <BookOpen className="w-4 h-4 text-blue-300" />
+                  Department of Computer Science
+                </div>
+              </div>
+
+              {/* Group Members Grid */}
+              <div className="lg:w-2/3 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="w-4 h-4 text-primary" />
+                    <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                      Project Team Members
+                    </h4>
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    {/* Member 1: Awais Khan */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 hover:border-primary/50 transition-colors">
+                      <div className="w-10 h-10 bg-blue-600 text-white font-bold rounded-lg flex items-center justify-center text-sm mb-3 shadow-sm">
+                        AK
+                      </div>
+                      <h5 className="font-bold text-slate-900 text-sm">Awais Khan</h5>
+                      <p className="text-[11px] text-primary font-semibold mt-0.5">Team Member</p>
+                      <p className="text-[11px] text-slate-500 mt-2 leading-snug">
+                        AI Model Fine-Tuning, BERT Classifiers, & Backend Architecture
+                      </p>
+                    </div>
+
+                    {/* Member 2: Saad Abdullah */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 hover:border-primary/50 transition-colors">
+                      <div className="w-10 h-10 bg-purple-600 text-white font-bold rounded-lg flex items-center justify-center text-sm mb-3 shadow-sm">
+                        SA
+                      </div>
+                      <h5 className="font-bold text-slate-900 text-sm">Saad Abdullah</h5>
+                      <p className="text-[11px] text-purple-600 font-semibold mt-0.5">Team Member</p>
+                      <p className="text-[11px] text-slate-500 mt-2 leading-snug">
+                        Full-Stack Development, Supabase Integrations, & UI/UX
+                      </p>
+                    </div>
+
+                    {/* Member 3: Ajiya Asif */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 hover:border-primary/50 transition-colors">
+                      <div className="w-10 h-10 bg-emerald-600 text-white font-bold rounded-lg flex items-center justify-center text-sm mb-3 shadow-sm">
+                        AA
+                      </div>
+                      <h5 className="font-bold text-slate-900 text-sm">Ajiya Asif</h5>
+                      <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">Team Member</p>
+                      <p className="text-[11px] text-slate-500 mt-2 leading-snug">
+                        CBT Clinical Dataset Curation, Evaluation, & Socratic Prompts
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50/60 border border-blue-200/60 rounded-xl p-3.5 flex items-center justify-between text-xs">
+                  <span className="text-slate-700 font-medium">
+                    Ready to explore the clinical CBT companion?
+                  </span>
+                  <Link to="/register">
+                    <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-xs h-7 px-3 rounded-lg">
+                      Explore App <ArrowRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -382,8 +540,14 @@ export default function Landing() {
               <strong className="text-slate-900">Important:</strong> Better Me is a supportive tool and not a substitute for professional mental health care.
               If you're experiencing a mental health emergency, please contact emergency services or a crisis helpline immediately.
             </p>
-            <div className="pt-6 border-t">
-              <p className="text-slate-500">
+            <div className="pt-6 border-t space-y-1">
+              <p className="text-xs font-semibold text-slate-800">
+                Final Year Project (FYP): Better Me • Supervised by Mam Farnaz Akbar
+              </p>
+              <p className="text-xs text-slate-600 font-medium">
+                Team Members: Awais Khan • Saad Abdullah • Ajiya Asif
+              </p>
+              <p className="text-[11px] text-slate-400 mt-2">
                 © 2026 Better Me. All rights reserved.
               </p>
             </div>

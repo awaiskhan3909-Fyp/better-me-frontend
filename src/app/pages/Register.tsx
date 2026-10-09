@@ -154,12 +154,25 @@ export default function Register() {
                 </Link>
               </p>
             </div>
+
+            {/* Academic FYP Attribution */}
+            <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                🎓 BS Final Year Project (FYP)
+              </p>
+              <p className="text-xs text-slate-700 font-medium">
+                <strong>Team:</strong> Awais Khan • Saad Abdullah • Ajiya Asif
+              </p>
+              <p className="text-[11px] text-slate-500">
+                <strong>Supervisor:</strong> Mam Farnaz Akbar
+              </p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Disclaimer */}
         <p className="text-center text-xs text-slate-500 mt-6 px-4">
-          Better me is a supportive tool designed to complement, not replace, professional mental health care.
+          Better Me is a supportive tool designed to complement, not replace, professional mental health care.
         </p>
       </div>
     </div>
