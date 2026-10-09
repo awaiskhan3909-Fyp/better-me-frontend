@@ -9,7 +9,7 @@ import {
 } from "../components/ui/input-otp";
 import { toast } from "sonner";
 import { Brain, ArrowLeft, MailCheck, ShieldCheck, RefreshCw } from "lucide-react";
-import logo from "../../imports/Better_me_Logo.png";
+import AuthLogo from "../components/AuthLogo";
 import { supabase } from "../services/supabaseClient";
 import { setCurrentUser } from "../services/apiService";
 
@@ -132,21 +132,25 @@ export default function VerifyOtp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-slate-50 to-secondary-lighter flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <Link to="/" className="flex items-center justify-center mb-6">
-          <img src={logo} alt="Better Me" className="h-10" />
-        </Link>
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/30 to-slate-100 flex items-center justify-center p-4 sm:p-6">
+      {/* Ambient Floating Gradient Orbs */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br from-primary/20 via-sky-300/20 to-transparent blur-3xl pointer-events-none animate-blob-1" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-gradient-to-tl from-secondary/20 via-indigo-200/20 to-transparent blur-3xl pointer-events-none animate-blob-2" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-radial from-primary/5 to-transparent blur-2xl pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Animated Floating Logo */}
+        <AuthLogo subtitle="Security Verification" />
 
         {/* Card */}
-        <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm rounded-2xl overflow-hidden">
-          <CardHeader className="text-center pb-2">
+        <Card className="border border-white/80 shadow-2xl shadow-slate-300/50 bg-white/95 backdrop-blur-xl rounded-3xl overflow-hidden transition-all duration-300">
+          <div className="h-1.5 w-full bg-gradient-to-r from-primary via-secondary to-primary-light" />
+          <CardHeader className="text-center pt-6 pb-2">
             <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
               <MailCheck className="w-7 h-7" />
             </div>
-            <CardTitle className="text-2xl font-bold text-slate-900">Enter Verification Code</CardTitle>
-            <CardDescription className="text-slate-600 font-['Inter'] mt-1">
+            <CardTitle className="text-2xl font-bold text-slate-900 tracking-tight">Enter Verification Code</CardTitle>
+            <CardDescription className="text-slate-600 font-['Inter'] mt-1 text-sm">
               We sent a 6-digit code to{" "}
               <span className="font-semibold text-slate-800 break-all">{email || "your email"}</span>
             </CardDescription>
