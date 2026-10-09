@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import ChatTherapy from "./pages/ChatTherapy";
 import Progress from "./pages/Progress";
 import OnboardingAssessment from "./pages/OnboardingAssessment";
+import VerifyOtp from "./pages/VerifyOtp";
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,10 @@ export const router = createBrowserRouter([
   {
     path: "/register",
     Component: Register,
+  },
+  {
+    path: "/verify-otp",
+    Component: VerifyOtp,
   },
   {
     path: "/onboarding",
