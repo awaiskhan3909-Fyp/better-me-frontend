@@ -3,8 +3,9 @@ import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
-import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag } from "lucide-react";
+import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag, Scale } from "lucide-react";
 import SafetyAlertModal from "../components/SafetyAlertModal";
+import ThoughtRecordModal from "../components/ThoughtRecordModal";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
 import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem } from "../services/apiService";
@@ -32,6 +33,14 @@ export default function ChatTherapy() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showSafetyAlert, setShowSafetyAlert] = useState(false);
+  const [showThoughtRecordModal, setShowThoughtRecordModal] = useState(false);
+  const [activeThoughtContext, setActiveThoughtContext] = useState<{
+    situation: string;
+    thought: string;
+    distortion: string;
+    suggestedReframe: string;
+    suggestedAction: string;
+  } | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -191,6 +200,18 @@ export default function ChatTherapy() {
             </Badge>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setActiveThoughtContext(null);
+                setShowThoughtRecordModal(true);
+              }}
+              className="text-purple-700 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:text-purple-800 text-xs font-medium"
+            >
+              <Scale className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
+              Thought Record
+            </Button>
             <Link to="/progress">
               <Button variant="ghost" size="sm" className="text-slate-700">
                 <TrendingUp className="w-4 h-4 mr-2" />
@@ -284,7 +305,7 @@ export default function ChatTherapy() {
                               Detected Cognitive Pattern:
                             </p>
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             {message.distortions.map((distortion) => (
                               <Badge
                                 key={distortion}
@@ -294,6 +315,34 @@ export default function ChatTherapy() {
                                 {distortion}
                               </Badge>
                             ))}
+                          </div>
+
+                          {/* Beckian Cognitive Restructuring Button */}
+                          <div className="mt-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const currentIndex = messages.findIndex((m) => m.id === message.id);
+                                const userMsg = messages
+                                  .slice(0, currentIndex)
+                                  .reverse()
+                                  .find((m) => m.type === "user");
+
+                                setActiveThoughtContext({
+                                  situation: userMsg?.content || "",
+                                  thought: userMsg?.content || "",
+                                  distortion: message.distortions?.[0] || "Catastrophizing",
+                                  suggestedReframe: message.cbtGuidance?.balanced_thought_guidance || message.content,
+                                  suggestedAction: message.cbtGuidance?.small_action || "",
+                                });
+                                setShowThoughtRecordModal(true);
+                              }}
+                              className="h-8 text-xs font-semibold bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 text-purple-700 hover:bg-purple-100 hover:text-purple-800 rounded-lg shadow-xs flex items-center gap-1.5"
+                            >
+                              <Scale className="w-3.5 h-3.5 text-purple-600" />
+                              Examine in 5-Column Thought Record
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -370,6 +419,21 @@ export default function ChatTherapy() {
 
       {/* Safety Alert Modal */}
       <SafetyAlertModal open={showSafetyAlert} onOpenChange={setShowSafetyAlert} />
+
+      {/* Beck's 5-Column Thought Record Modal */}
+      <ThoughtRecordModal
+        open={showThoughtRecordModal}
+        onOpenChange={setShowThoughtRecordModal}
+        initialSituation={activeThoughtContext?.situation || ""}
+        initialThought={activeThoughtContext?.thought || ""}
+        initialDistortion={activeThoughtContext?.distortion || "Catastrophizing"}
+        suggestedReframe={activeThoughtContext?.suggestedReframe || ""}
+        suggestedAction={activeThoughtContext?.suggestedAction || ""}
+        conversationId={conversationId}
+        onRecordSaved={() => {
+          toast.success("Thought Record saved to your longitudinal profile!");
+        }}
+      />
     </div>
   );
 }

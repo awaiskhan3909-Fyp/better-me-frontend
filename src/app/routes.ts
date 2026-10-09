@@ -7,6 +7,7 @@ import ChatTherapy from "./pages/ChatTherapy";
 import Progress from "./pages/Progress";
 import OnboardingAssessment from "./pages/OnboardingAssessment";
 import VerifyOtp from "./pages/VerifyOtp";
+import ThoughtRecords from "./pages/ThoughtRecords";
 
 export const router = createBrowserRouter([
   {
@@ -40,5 +41,9 @@ export const router = createBrowserRouter([
   {
     path: "/progress",
     Component: Progress,
+  },
+  {
+    path: "/thought-records",
+    Component: ThoughtRecords,
   },
 ]);

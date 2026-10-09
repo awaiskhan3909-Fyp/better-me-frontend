@@ -343,3 +343,72 @@ export async function getPatientEpisodicMemories(userId: string): Promise<Episod
   }
   return response.json();
 }
+
+// --- Phase 2: Beck's 5-Column Thought Record Interfaces & Methods ---
+
+export interface CreateThoughtRecordRequest {
+  user_id: string;
+  conversation_id?: string | null;
+  situation: string;
+  automatic_thought: string;
+  initial_belief_rating: number;
+  emotions: Record<string, number>;
+  distortion_type: string;
+  evidence_for: string;
+  evidence_against: string;
+  balanced_thought: string;
+  outcome_belief_rating: number;
+  outcome_emotions: Record<string, number>;
+  behavioral_action?: string | null;
+}
+
+export interface CBTThoughtRecord {
+  id: string;
+  user_id: string;
+  conversation_id?: string | null;
+  situation: string;
+  automatic_thought: string;
+  initial_belief_rating: number;
+  emotions: Record<string, number>;
+  distortion_type: string;
+  evidence_for: string;
+  evidence_against: string;
+  balanced_thought: string;
+  outcome_belief_rating: number;
+  outcome_emotions: Record<string, number>;
+  behavioral_action?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function createThoughtRecord(payload: CreateThoughtRecordRequest): Promise<CBTThoughtRecord> {
+  const response = await fetch(`${API_BASE_URL}/thought-records`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to save thought record" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getThoughtRecords(userId: string): Promise<CBTThoughtRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/thought-records?user_id=${encodeURIComponent(userId)}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch thought records" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function deleteThoughtRecord(recordId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/thought-records/${recordId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to delete thought record" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+}

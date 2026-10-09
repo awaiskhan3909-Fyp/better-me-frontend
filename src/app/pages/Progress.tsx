@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { Brain, Home, TrendingUp, Calendar, AlertCircle, MessageCircle, Sparkles, ArrowRight } from "lucide-react";
+import { Brain, Home, TrendingUp, Calendar, AlertCircle, MessageCircle, Sparkles, ArrowRight, Scale } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import logo from "../../imports/Better_me_Logo.png";
 import { getCurrentUser, getDashboardStats, DashboardStatsResponse } from "../services/apiService";
@@ -82,6 +82,12 @@ export default function Progress() {
             <img src={logo} alt="Better Me" className="h-8" />
           </Link>
           <div className="flex items-center gap-2">
+            <Link to="/thought-records">
+              <Button variant="ghost" size="sm" className="text-slate-700 hover:text-purple-700">
+                <Scale className="w-4 h-4 mr-1.5 text-purple-600" />
+                Thought Records
+              </Button>
+            </Link>
             <Link to="/chat">
               <Button variant="ghost" size="sm" className="text-slate-700">
                 <MessageCircle className="w-4 h-4 mr-2" />

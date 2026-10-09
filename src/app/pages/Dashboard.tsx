@@ -15,7 +15,8 @@ import {
   Activity,
   Target,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Scale
 } from "lucide-react";
 import logo from "../../imports/Better_me_Logo.png";
 import {
@@ -114,6 +115,12 @@ export default function Dashboard() {
             <img src={logo} alt="Better Me" className="h-8" />
           </Link>
           <div className="flex items-center gap-3">
+            <Link to="/thought-records">
+              <Button variant="ghost" className="text-slate-700 hover:text-purple-700">
+                <Scale className="w-4 h-4 mr-2 text-purple-600" />
+                Thought Records
+              </Button>
+            </Link>
             <Link to="/progress">
               <Button variant="ghost" className="text-slate-700 hover:text-primary">
                 <TrendingUp className="w-4 h-4 mr-2" />
@@ -320,6 +327,31 @@ export default function Dashboard() {
 
           {/* Right Col: Emotional Insights & CBT Coaching */}
           <div className="space-y-6">
+            {/* Beck's Thought Record Studio Card */}
+            <Card className="border border-purple-200/70 shadow-lg bg-gradient-to-br from-purple-50/70 via-indigo-50/40 to-white">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                    <Scale className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm mb-1">
+                      Beck's Thought Records Studio
+                    </h4>
+                    <p className="text-xs text-slate-600 leading-relaxed mb-3">
+                      Put automatic negative thoughts on trial using the 5-column cognitive restructuring method.
+                    </p>
+                    <Link to="/thought-records">
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs h-8">
+                        Open Thought Studio
+                        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle>Therapy Insights</CardTitle>
