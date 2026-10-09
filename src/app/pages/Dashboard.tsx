@@ -24,6 +24,7 @@ import {
   getDashboardStats,
   DashboardStatsResponse
 } from "../services/apiService";
+import { getUserIntakeFromSupabase } from "../services/supabaseService";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -35,7 +36,36 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const data = await getDashboardStats(currentUser?.id);
+        let data = await getDashboardStats(currentUser?.id).catch(() => null);
+
+        // Load per-user assessment from Supabase
+        if (currentUser) {
+          const supaIntake = await getUserIntakeFromSupabase(currentUser.id, currentUser.email);
+          if (supaIntake) {
+            if (!data) {
+              data = {
+                user_name: currentUser.full_name || currentUser.email.split("@")[0],
+                total_sessions: 0,
+                avg_duration_minutes: 0,
+                total_messages: 0,
+                current_risk_level: "Safe",
+                primary_focus: supaIntake.primary_focus || [],
+                primary_goal: supaIntake.primary_goal || "Learn to challenge and reframe negative thoughts",
+                distortions_breakdown: {},
+                recent_sessions: [],
+                emotional_trends: []
+              };
+            } else {
+              if ((!data.primary_focus || data.primary_focus.length === 0) && supaIntake.primary_focus) {
+                data.primary_focus = supaIntake.primary_focus;
+              }
+              if (!data.primary_goal && supaIntake.primary_goal) {
+                data.primary_goal = supaIntake.primary_goal;
+              }
+            }
+          }
+        }
+
         setStats(data);
       } catch (err) {
         console.warn("Could not fetch remote stats, using fallback", err);

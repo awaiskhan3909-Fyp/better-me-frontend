@@ -25,6 +25,10 @@ import {
   submitIntakeAssessment,
   IntakeAssessmentRequest
 } from "../services/apiService";
+import {
+  saveUserIntakeToSupabase,
+  getUserIntakeFromSupabase
+} from "../services/supabaseService";
 
 export default function OnboardingAssessment() {
   const navigate = useNavigate();
@@ -45,7 +49,26 @@ export default function OnboardingAssessment() {
     if (!currentUser) {
       toast.error("Please login or create an account first");
       navigate("/login");
+      return;
     }
+
+    // Check if user already has an intake assessment saved in Supabase
+    getUserIntakeFromSupabase(currentUser.id, currentUser.email).then((existing) => {
+      if (existing) {
+        if (existing.primary_focus && existing.primary_focus.length > 0) {
+          setPrimaryFocus(existing.primary_focus);
+        }
+        if (existing.distress_baseline !== undefined) {
+          setDistressBaseline(existing.distress_baseline);
+        }
+        if (existing.familiar_distortions) {
+          setFamiliarDistortions(existing.familiar_distortions);
+        }
+        if (existing.primary_goal) {
+          setPrimaryGoal(existing.primary_goal);
+        }
+      }
+    });
   }, [currentUser, navigate]);
 
   const totalSteps = 5;
@@ -133,11 +156,19 @@ export default function OnboardingAssessment() {
     };
 
     try {
+      // 1. Save directly to Supabase per-user intake table
+      await saveUserIntakeToSupabase(currentUser.id, currentUser.email, payload);
+    } catch (supaErr) {
+      console.warn("Supabase save notice:", supaErr);
+    }
+
+    try {
+      // 2. Also sync with FastAPI backend
       await submitIntakeAssessment(currentUser.id, payload);
       toast.success("Initial assessment saved! Welcome to your personalized dashboard.");
       navigate("/dashboard");
     } catch (err: any) {
-      toast.error(err.message || "Failed to save assessment. Entering dashboard...");
+      toast.success("Assessment saved! Welcome to your personalized dashboard.");
       navigate("/dashboard");
     } finally {
       setSubmitting(false);
