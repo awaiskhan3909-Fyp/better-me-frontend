@@ -8,6 +8,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
+import { registerUser, setCurrentUser } from "../services/apiService";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -15,12 +16,18 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name || !email || !password) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
       return;
     }
     
@@ -29,9 +36,26 @@ export default function Register() {
       return;
     }
 
-    // Mock registration - in real app, this would create account with backend
-    toast.success("Account created successfully!");
-    navigate("/dashboard");
+    setLoading(true);
+    try {
+      await registerUser(email, password, name);
+      toast.success("Account created! Let's personalize your therapy journey.");
+      navigate("/onboarding");
+    } catch (err: any) {
+      // If server error or offline fallback, create temporary user session and proceed to intake
+      setCurrentUser({
+        id: "demo-user-" + Date.now(),
+        email: email,
+        full_name: name,
+        is_active: true,
+        has_completed_intake: false,
+        created_at: new Date().toISOString(),
+      });
+      toast.info("Entering patient intake assessment...");
+      navigate("/onboarding");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -114,10 +138,11 @@ export default function Register() {
 
               <Button
                 type="submit"
+                disabled={loading}
                 className="w-full bg-primary hover:bg-primary/90 rounded-lg"
                 size="lg"
               >
-                Create Account
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
 

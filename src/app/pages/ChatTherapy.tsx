@@ -7,7 +7,7 @@ import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircl
 import SafetyAlertModal from "../components/SafetyAlertModal";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
-import { analyzeUserMessage, createConversationSession, sendMessageInConversation, CBTGuidance, EntityItem } from "../services/apiService";
+import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem } from "../services/apiService";
 
 interface Message {
   id: string;
@@ -69,7 +69,8 @@ export default function ChatTherapy() {
       let activeConvId = conversationId;
       if (!activeConvId) {
         try {
-          const session = await createConversationSession();
+          const user = getCurrentUser();
+          const session = await createConversationSession("Therapy Session", user?.id);
           activeConvId = session.id;
           setConversationId(activeConvId);
         } catch (e) {

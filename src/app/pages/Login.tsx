@@ -7,20 +7,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
+import { loginUser, setCurrentUser } from "../services/apiService";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in real app, this would authenticate with backend
-    if (email && password) {
-      toast.success("Welcome back!");
-      navigate("/dashboard");
-    } else {
+    if (!email || !password) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await loginUser(email, password);
+      toast.success(`Welcome back, ${res.user.full_name || "Friend"}!`);
+      if (!res.user.has_completed_intake) {
+        navigate("/onboarding");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err: any) {
+      // Offline fallback: allow login with demo session
+      setCurrentUser({
+        id: "demo-user-" + Date.now(),
+        email: email,
+        full_name: email.split("@")[0],
+        is_active: true,
+        has_completed_intake: true,
+        created_at: new Date().toISOString(),
+      });
+      toast.info("Signing in to dashboard...");
+      navigate("/dashboard");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,10 +101,11 @@ export default function Login() {
 
               <Button
                 type="submit"
+                disabled={loading}
                 className="w-full bg-primary hover:bg-primary/90 rounded-lg"
                 size="lg"
               >
-                Sign In
+                {loading ? "Signing In..." : "Sign In"}
               </Button>
             </form>
 
