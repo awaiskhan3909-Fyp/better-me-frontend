@@ -297,3 +297,49 @@ export async function analyzeUserMessage(text: string): Promise<AnalyzeResponse>
 
   return response.json();
 }
+
+// --- Phase 1: Longitudinal Clinical Memory Engine Client Interfaces & Methods ---
+
+export interface PatientClinicalProfile {
+  id: string;
+  user_id: string;
+  primary_triggers: string[];
+  dominant_distortions: Record<string, number>;
+  core_beliefs: string[];
+  effective_reframes: string[];
+  active_homework?: string | null;
+  last_session_summary?: string | null;
+  total_sessions_completed: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EpisodicTherapyMemory {
+  id: string;
+  user_id: string;
+  conversation_id?: string | null;
+  situation_context: string;
+  distorted_thought: string;
+  distortion_type: string;
+  rational_reframe: string;
+  breakthrough_notes?: string | null;
+  created_at: string;
+}
+
+export async function getPatientClinicalProfile(userId: string): Promise<PatientClinicalProfile> {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/clinical-profile`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch clinical profile" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getPatientEpisodicMemories(userId: string): Promise<EpisodicTherapyMemory[]> {
+  const response = await fetch(`${API_BASE_URL}/users/${userId}/memories`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch episodic memories" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
