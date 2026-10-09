@@ -8,6 +8,7 @@ import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
 import { loginUser, setCurrentUser } from "../services/apiService";
+import { supabase } from "../services/supabaseClient";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,8 +25,22 @@ export default function Login() {
     }
 
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+
     try {
-      const res = await loginUser(email, password);
+      // 1. Check if Supabase requires email verification
+      const { data: supaLogin, error: supaErr } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: password,
+      });
+
+      if (supaErr && supaErr.message.toLowerCase().includes("email not confirmed")) {
+        toast.info("Please enter your 6-digit verification code to activate your account.");
+        navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
+        return;
+      }
+
+      const res = await loginUser(cleanEmail, password);
       toast.success(`Welcome back, ${res.user.full_name || "Friend"}!`);
       if (!res.user.has_completed_intake) {
         navigate("/onboarding");
@@ -36,8 +51,8 @@ export default function Login() {
       // Offline fallback: allow login with demo session
       setCurrentUser({
         id: "demo-user-" + Date.now(),
-        email: email,
-        full_name: email.split("@")[0],
+        email: cleanEmail,
+        full_name: cleanEmail.split("@")[0],
         is_active: true,
         has_completed_intake: true,
         created_at: new Date().toISOString(),

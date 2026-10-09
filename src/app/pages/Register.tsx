@@ -9,6 +9,7 @@ import { Brain } from "lucide-react";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
 import { registerUser, setCurrentUser } from "../services/apiService";
+import { supabase } from "../services/supabaseClient";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !email || !password) {
+    if (!name.trim() || !email.trim() || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -37,22 +38,54 @@ export default function Register() {
     }
 
     setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+
     try {
-      await registerUser(email, password, name);
-      toast.success("Account created! Let's personalize your therapy journey.");
-      navigate("/onboarding");
-    } catch (err: any) {
-      // If server error or offline fallback, create temporary user session and proceed to intake
+      // 1. Trigger Supabase Auth to send 6-digit confirmation code / OTP to email
+      const { data: supaData, error: supaError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: password,
+        options: {
+          data: {
+            full_name: cleanName,
+          },
+        },
+      });
+
+      if (supaError) {
+        console.warn("Supabase SignUp notice:", supaError.message);
+        if (supaError.message.toLowerCase().includes("already registered")) {
+          toast.info("An account with this email already exists. Please verify your OTP.");
+          navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
+          return;
+        }
+      }
+
+      // 2. Also register in FastAPI backend
+      try {
+        await registerUser(cleanEmail, password, cleanName);
+      } catch (backendErr) {
+        console.warn("FastAPI backend register:", backendErr);
+      }
+
+      // 3. Cache user session
+      const userId = supaData?.user?.id || "user-" + Date.now();
       setCurrentUser({
-        id: "demo-user-" + Date.now(),
-        email: email,
-        full_name: name,
+        id: userId,
+        email: cleanEmail,
+        full_name: cleanName,
         is_active: true,
         has_completed_intake: false,
         created_at: new Date().toISOString(),
       });
-      toast.info("Entering patient intake assessment...");
-      navigate("/onboarding");
+
+      toast.success("Account created! We've sent a 6-digit verification code to your email.");
+      // 4. Navigate directly to OTP verification screen
+      navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      toast.error(err.message || "Failed to create account. Please try again.");
     } finally {
       setLoading(false);
     }
