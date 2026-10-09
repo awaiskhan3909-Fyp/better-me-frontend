@@ -283,3 +283,18 @@
   will-change: transform;
 }
 
+/* Electric Circuit Flow Animation for Robotic Brain Logo */
+@keyframes circuitPulse {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -34;
+  }
+}
+
+.animate-circuit-pulse {
+  animation: circuitPulse 1.8s linear infinite;
+}
+
+
