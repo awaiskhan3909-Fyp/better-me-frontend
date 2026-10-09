@@ -97,12 +97,12 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <button
-                    type="button"
-                    className="text-sm text-primary hover:text-primary/80"
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-primary hover:text-primary/80 font-medium hover:underline transition-all"
                   >
                     Forgot password?
-                  </button>
+                  </Link>
                 </div>
                 <Input
                   id="password"

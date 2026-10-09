@@ -8,6 +8,8 @@ import Progress from "./pages/Progress";
 import OnboardingAssessment from "./pages/OnboardingAssessment";
 import VerifyOtp from "./pages/VerifyOtp";
 import ThoughtRecords from "./pages/ThoughtRecords";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +27,14 @@ export const router = createBrowserRouter([
   {
     path: "/verify-otp",
     Component: VerifyOtp,
+  },
+  {
+    path: "/forgot-password",
+    Component: ForgotPassword,
+  },
+  {
+    path: "/reset-password",
+    Component: ResetPassword,
   },
   {
     path: "/onboarding",
