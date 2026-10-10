@@ -8,7 +8,7 @@ import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
-import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem } from "../services/apiService";
+import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem, ConversationMessageResponse, AnalyzeResponse } from "../services/apiService";
 
 interface Message {
   id: string;
@@ -98,9 +98,11 @@ export default function ChatTherapy() {
       let cbtGuidanceData: CBTGuidance | undefined = undefined;
       let entitiesData: EntityItem[] = [];
       let strategy = "normal_conversation";
+      let convRes: ConversationMessageResponse | null = null;
+      let analyzeData: AnalyzeResponse | null = null;
 
       if (activeConvId) {
-        const convRes = await sendMessageInConversation(activeConvId, userText);
+        convRes = await sendMessageInConversation(activeConvId, userText);
         aiContent = convRes.ai_message.content;
         safetyObj = convRes.analysis.safety;
         distortionClass = convRes.analysis.distortion.predicted_class;
@@ -108,12 +110,12 @@ export default function ChatTherapy() {
         entitiesData = convRes.analysis.entities;
         strategy = convRes.decision?.strategy || "normal_conversation";
       } else {
-        const data = await analyzeUserMessage(userText);
-        aiContent = data.cbt_guidance.balanced_thought_guidance;
-        safetyObj = data.safety;
-        distortionClass = data.distortion.predicted_class;
-        cbtGuidanceData = data.cbt_guidance;
-        entitiesData = data.entities;
+        analyzeData = await analyzeUserMessage(userText);
+        aiContent = analyzeData.cbt_guidance.balanced_thought_guidance;
+        safetyObj = analyzeData.safety;
+        distortionClass = analyzeData.distortion.predicted_class;
+        cbtGuidanceData = analyzeData.cbt_guidance;
+        entitiesData = analyzeData.entities;
       }
 
       // Check for safety alert requirement
@@ -145,8 +147,9 @@ export default function ChatTherapy() {
       let accuracyVal = "94.2%";
       let modelDisplayName = "Llama-3-8B-CBT-LoRA";
 
-      if (convRes?.analysis?.distortion?.confidence && convRes.analysis.distortion.confidence > 0) {
-        accuracyVal = `${(convRes.analysis.distortion.confidence * 100).toFixed(1)}%`;
+      const currentDistortion = convRes?.analysis?.distortion || analyzeData?.distortion;
+      if (currentDistortion?.confidence && currentDistortion.confidence > 0) {
+        accuracyVal = `${(currentDistortion.confidence * 100).toFixed(1)}%`;
       } else if (convRes?.ai_response_log?.llm_metadata?.model_accuracy) {
         accuracyVal = convRes.ai_response_log.llm_metadata.model_accuracy;
       }
@@ -173,7 +176,7 @@ export default function ChatTherapy() {
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
       console.error("API Error:", error);
-      toast.error("Could not connect to Better Me AI backend server. Please make sure the backend is running.");
+      toast.error(error?.message || "Could not connect to Better Me AI backend server. Please make sure the backend is running.");
     } finally {
       setIsTyping(false);
     }
