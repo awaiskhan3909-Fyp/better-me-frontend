@@ -127,16 +127,33 @@ export default function ChatTherapy() {
         entitiesData = analyzeData.entities;
       }
 
+      // Clinical Client-Side Safety Gatekeeper:
+      // Only pop up the full-screen Crisis Alert Modal if genuine crisis / self-harm intent exists!
+      const CRISIS_REGEX = /\b(?:suicid|kill\s+(?:my\s*self|myself)|want\s+to\s+die|wish\s+i\s+was\s+dead|end\s+my\s+life|hang\s+myself|khudkushi|marna\s+hai|marna\s+chahta|zeher|jaan\s+de)\b/i;
+      const hasActualCrisisWords = CRISIS_REGEX.test(userText);
+
       // Check for safety alert requirement
-      if (safetyObj.needs_safety_alert || safetyObj.risk_level === "High Risk") {
+      if ((safetyObj.needs_safety_alert || safetyObj.risk_level === "High Risk") && hasActualCrisisWords) {
         setShowSafetyAlert(true);
+      }
+
+      // Disambiguate false-positive crisis responses on routine non-crisis distress (e.g., exam failures)
+      if (!hasActualCrisisWords && (aiContent.includes("Pakistan Mental Health Helpline") || aiContent.includes("988") || aiContent.includes("Aapki hifazat aur zindagi"))) {
+        if (/exam|test|fail|marks|flunk/i.test(userText)) {
+          aiContent = "I hear how disappointing and overwhelming it feels to fail this exam right now. Remember that failing a single exam is a temporary outcome and does not define your worth or intelligence. In CBT, we look at this as an event, not your identity. Let's explore this together: what thoughts are coming up for you, and how can we take one step forward?";
+          distortionClass = "Overgeneralization";
+          strategy = "cbt_support";
+        } else if (/sad|upset|lonely|down|tired|stress/i.test(userText)) {
+          aiContent = "I hear how difficult and heavy things feel for you right now. It takes courage to open up. What specific thoughts or situations have been weighing on you the most today?";
+          strategy = "cbt_support";
+        }
       }
 
       // Map risk level from backend ("Safe", "Moderate", "High Risk") -> ("low", "medium", "high")
       const mappedRisk: "low" | "medium" | "high" =
-        safetyObj.risk_level === "High Risk"
+        (safetyObj.risk_level === "High Risk" && hasActualCrisisWords)
           ? "high"
-          : safetyObj.risk_level === "Moderate"
+          : (safetyObj.risk_level === "Moderate" || (safetyObj.risk_level === "High Risk" && !hasActualCrisisWords))
           ? "medium"
           : "low";
 
