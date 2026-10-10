@@ -78,7 +78,7 @@ export default function ForgotPassword() {
       return;
     }
 
-    if (otp.length < 6) {
+    if (otp.length !== 6) {
       toast.error("Please enter the complete 6-digit recovery code");
       return;
     }
@@ -211,27 +211,26 @@ export default function ForgotPassword() {
               </form>
             ) : (
               <form onSubmit={handleResetWithOtp} className="space-y-5">
-                {/* Flexible Recovery OTP */}
+                {/* Strict 6-Digit Recovery OTP */}
                 <div className="space-y-2">
-                  <Label className="text-slate-700 font-medium block text-center">Recovery Code (6 or 8 digits)</Label>
+                  <Label className="text-slate-700 font-medium block text-center">6-Digit Recovery Code</Label>
                   <div className="flex flex-col items-center justify-center">
                     <InputOTP
-                      maxLength={8}
+                      maxLength={6}
                       value={otp}
                       onChange={(val) => setOtp(val)}
                       autoFocus
                     >
-                      <InputOTPGroup className="gap-1 sm:gap-2">
-                        <InputOTPSlot index={0} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={1} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={2} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={3} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={4} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={5} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={6} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={7} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                      <InputOTPGroup className="gap-2">
+                        <InputOTPSlot index={0} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={1} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={2} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={3} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={4} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={5} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
                       </InputOTPGroup>
                     </InputOTP>
+                    <p className="text-xs text-slate-400 mt-2">Enter the 6-digit code sent to your email</p>
                   </div>
                 </div>
 
