@@ -147,8 +147,8 @@ export interface DashboardStatsResponse {
   recent_sessions: SessionSummaryItem[];
   emotional_trends: EmotionalTrendItem[];
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://memorabilia-confirmed-certainly-ticket.trycloudflare.com/api";
+export const ACTIVE_BACKEND_URL = "https://memorabilia-confirmed-certainly-ticket.trycloudflare.com/api";
+const API_BASE_URL = (typeof window !== "undefined" && (localStorage.getItem("BETTER_ME_API_URL") || (window as any).__BETTER_ME_API_URL__)) || ACTIVE_BACKEND_URL;
 
 // --- Session Persistence Helpers ---
 
