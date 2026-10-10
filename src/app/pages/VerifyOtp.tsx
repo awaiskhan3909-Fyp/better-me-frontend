@@ -158,36 +158,38 @@ export default function VerifyOtp() {
 
           <CardContent className="pt-4 pb-6 space-y-6">
             <form onSubmit={handleVerifyOtp} className="space-y-6">
-              {/* 6-Digit OTP Input */}
+              {/* Flexible 6 to 8-Digit OTP Input */}
               <div className="flex flex-col items-center justify-center">
                 <InputOTP
-                  maxLength={6}
+                  maxLength={8}
                   value={otp}
                   onChange={(val) => {
                     setOtp(val);
-                    if (val.length === 6) {
-                      // Auto submit when 6 digits filled
-                      setTimeout(() => handleVerifyOtp(), 100);
+                    if (val.length === 6 || val.length === 8) {
+                      // Auto submit when 6 or 8 digits filled
+                      setTimeout(() => handleVerifyOtp(), 150);
                     }
                   }}
                   autoFocus
                 >
-                  <InputOTPGroup className="gap-2">
-                    <InputOTPSlot index={0} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                    <InputOTPSlot index={1} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                    <InputOTPSlot index={2} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                    <InputOTPSlot index={3} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                    <InputOTPSlot index={4} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                    <InputOTPSlot index={5} className="w-11 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                  <InputOTPGroup className="gap-1 sm:gap-2">
+                    <InputOTPSlot index={0} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={1} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={2} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={3} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={4} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={5} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={6} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                    <InputOTPSlot index={7} className="w-8 sm:w-10 h-12 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
                   </InputOTPGroup>
                 </InputOTP>
-                <p className="text-xs text-slate-400 mt-2">Enter the 6 numbers from your email</p>
+                <p className="text-xs text-slate-400 mt-2">Enter the verification code from your email (6 or 8 digits)</p>
               </div>
 
               {/* Verify Button */}
               <Button
                 type="submit"
-                disabled={otp.length !== 6 || verifying}
+                disabled={otp.length < 6 || verifying}
                 className="w-full bg-primary hover:bg-primary-dark text-white rounded-xl shadow-lg shadow-primary/25 h-11 text-base font-medium"
               >
                 {verifying ? "Verifying..." : "Verify & Continue"}

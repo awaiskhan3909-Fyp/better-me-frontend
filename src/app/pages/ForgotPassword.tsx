@@ -211,23 +211,25 @@ export default function ForgotPassword() {
               </form>
             ) : (
               <form onSubmit={handleResetWithOtp} className="space-y-5">
-                {/* 6-Digit OTP */}
+                {/* Flexible Recovery OTP */}
                 <div className="space-y-2">
-                  <Label className="text-slate-700 font-medium block text-center">6-Digit Recovery Code</Label>
+                  <Label className="text-slate-700 font-medium block text-center">Recovery Code (6 or 8 digits)</Label>
                   <div className="flex flex-col items-center justify-center">
                     <InputOTP
-                      maxLength={6}
+                      maxLength={8}
                       value={otp}
                       onChange={(val) => setOtp(val)}
                       autoFocus
                     >
-                      <InputOTPGroup className="gap-2">
-                        <InputOTPSlot index={0} className="w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={1} className="w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={2} className="w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={3} className="w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={4} className="w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
-                        <InputOTPSlot index={5} className="w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                      <InputOTPGroup className="gap-1 sm:gap-2">
+                        <InputOTPSlot index={0} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={1} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={2} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={3} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={4} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={5} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={6} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
+                        <InputOTPSlot index={7} className="w-8 sm:w-10 h-11 text-lg font-bold rounded-xl border-2 border-slate-200 focus:border-primary" />
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
