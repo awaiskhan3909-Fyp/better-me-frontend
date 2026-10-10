@@ -136,7 +136,7 @@ export interface DashboardStatsResponse {
   emotional_trends: EmotionalTrendItem[];
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://channels-combines-pads-turns.trycloudflare.com/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ban-older-considerable-penetration.trycloudflare.com/api";
 
 // --- Session Persistence Helpers ---
 
