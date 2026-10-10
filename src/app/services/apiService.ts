@@ -147,8 +147,21 @@ export interface DashboardStatsResponse {
   recent_sessions: SessionSummaryItem[];
   emotional_trends: EmotionalTrendItem[];
 }
-export const ACTIVE_BACKEND_URL = "https://treasures-turning-mono-vacation.trycloudflare.com/api";
-const API_BASE_URL = (typeof window !== "undefined" && (localStorage.getItem("BETTER_ME_API_URL") || (window as any).__BETTER_ME_API_URL__)) || ACTIVE_BACKEND_URL;
+export const ACTIVE_BACKEND_URL = "https://nine-nerve-tied-graduation.trycloudflare.com/api";
+
+// Auto-purge any old/stale Cloudflare URLs from localStorage to prevent "Failed to fetch" errors
+if (typeof window !== "undefined") {
+  try {
+    const cachedUrl = localStorage.getItem("BETTER_ME_API_URL");
+    if (cachedUrl && (cachedUrl.includes("trycloudflare.com") || cachedUrl !== ACTIVE_BACKEND_URL)) {
+      localStorage.removeItem("BETTER_ME_API_URL");
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+const API_BASE_URL = ACTIVE_BACKEND_URL;
 
 // --- Session Persistence Helpers ---
 
