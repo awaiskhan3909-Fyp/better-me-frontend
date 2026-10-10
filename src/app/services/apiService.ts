@@ -147,7 +147,7 @@ export interface DashboardStatsResponse {
   recent_sessions: SessionSummaryItem[];
   emotional_trends: EmotionalTrendItem[];
 }
-export const ACTIVE_BACKEND_URL = "https://package-concluded-view-retrieved.trycloudflare.com/api";
+export const ACTIVE_BACKEND_URL = "https://treasures-turning-mono-vacation.trycloudflare.com/api";
 const API_BASE_URL = (typeof window !== "undefined" && (localStorage.getItem("BETTER_ME_API_URL") || (window as any).__BETTER_ME_API_URL__)) || ACTIVE_BACKEND_URL;
 
 // --- Session Persistence Helpers ---
