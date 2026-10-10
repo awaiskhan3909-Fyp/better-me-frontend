@@ -27,12 +27,24 @@ export interface CBTGuidance {
   small_action?: string;
 }
 
+export interface ModelBenchmarkStats {
+  safety_model_accuracy: string;
+  distortion_model_accuracy: string;
+  cbt_model_accuracy: string;
+  safety_samples_trained?: number;
+  distortion_samples_trained?: number;
+  safety_model_name?: string;
+  distortion_model_name?: string;
+  cbt_model_name?: string;
+}
+
 export interface AnalyzeResponse {
   text: string;
   safety: SafetyPrediction;
   distortion: DistortionPrediction;
   entities: EntityItem[];
   cbt_guidance: CBTGuidance;
+  benchmark_stats?: ModelBenchmarkStats;
 }
 
 export interface ResponseDecisionDetail {

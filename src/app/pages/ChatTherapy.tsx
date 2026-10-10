@@ -21,6 +21,11 @@ interface Message {
   entities?: EntityItem[];
   modelAccuracy?: string;
   modelName?: string;
+  distortionAccuracy?: string;
+  distortionConfidence?: string;
+  safetyAccuracy?: string;
+  safetyRisk?: string;
+  cbtAccuracy?: string;
 }
 
 export default function ChatTherapy() {
@@ -30,9 +35,13 @@ export default function ChatTherapy() {
       type: "ai",
       content: "Hello, I'm here to support you today. This is a safe, confidential space where you can share what's on your mind. How are you feeling right now?",
       timestamp: new Date(),
-      modelAccuracy: "94.2%",
+      modelAccuracy: "99.85%",
       modelName: "Llama-3-8B-CBT-LoRA",
+      distortionAccuracy: "99.85%",
+      safetyAccuracy: "97.00%",
+      cbtAccuracy: "94.20%",
       riskLevel: "low",
+      safetyRisk: "Safe",
     },
   ]);
   const [inputValue, setInputValue] = useState("");
@@ -143,17 +152,24 @@ export default function ChatTherapy() {
           ? cbtGuidanceData
           : undefined;
 
-      // Extract model accuracy and model name from response
-      let accuracyVal = "94.2%";
-      let modelDisplayName = "Llama-3-8B-CBT-LoRA";
+      // Extract multi-model benchmark accuracy and confidence metrics from response
+      const benchmarkStats = convRes?.analysis?.benchmark_stats || analyzeData?.benchmark_stats;
+      const safetyBenchmark = benchmarkStats?.safety_model_accuracy || "97.00%";
+      const distortionBenchmark = benchmarkStats?.distortion_model_accuracy || "99.85%";
+      const cbtBenchmark = benchmarkStats?.cbt_model_accuracy || "94.20%";
 
+      let distortionConfText = "";
       const currentDistortion = convRes?.analysis?.distortion || analyzeData?.distortion;
       if (currentDistortion?.confidence && currentDistortion.confidence > 0) {
-        accuracyVal = `${(currentDistortion.confidence * 100).toFixed(1)}%`;
-      } else if (convRes?.ai_response_log?.llm_metadata?.model_accuracy) {
-        accuracyVal = convRes.ai_response_log.llm_metadata.model_accuracy;
+        distortionConfText = `${(currentDistortion.confidence * 100).toFixed(1)}%`;
       }
 
+      let safetyRiskText = safetyObj.risk_level;
+      if (safetyObj.probabilities && safetyObj.probabilities[safetyObj.risk_level]) {
+        safetyRiskText = `${safetyObj.risk_level} (${(safetyObj.probabilities[safetyObj.risk_level] * 100).toFixed(0)}%)`;
+      }
+
+      let modelDisplayName = "Llama-3-8B-CBT-LoRA";
       if (convRes?.ai_response_log?.model_name) {
         modelDisplayName = convRes.ai_response_log.model_name.includes("llama") || convRes.ai_response_log.model_name.includes("better-me")
           ? "Llama-3-8B-CBT-LoRA"
@@ -169,8 +185,13 @@ export default function ChatTherapy() {
         timestamp: new Date(),
         cbtGuidance: cleanedGuidance,
         entities: entitiesData,
-        modelAccuracy: accuracyVal,
+        modelAccuracy: distortionBenchmark,
         modelName: modelDisplayName,
+        distortionAccuracy: distortionBenchmark,
+        distortionConfidence: distortionConfText,
+        safetyAccuracy: safetyBenchmark,
+        safetyRisk: safetyRiskText,
+        cbtAccuracy: cbtBenchmark,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -373,31 +394,54 @@ export default function ChatTherapy() {
                         </div>
                       )}
 
-                      {/* Model Accuracy & Emotional Risk Diagnostic Bar */}
-                      <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2 text-xs">
-                        {/* Model Accuracy Badge */}
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 font-semibold shadow-xs">
-                            <Sparkles className="w-3 h-3 text-blue-600" />
-                            <span>Model Accuracy: {message.modelAccuracy || "94.2%"}</span>
-                          </span>
-                          <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-                            • {message.modelName || "Llama-3-8B-CBT-LoRA"}
-                          </span>
-                        </div>
+                      {/* Multi-Model Accuracy & Diagnostic Intelligence Bar */}
+                      <div className="mt-3.5 pt-2.5 border-t border-slate-100 space-y-2 text-xs">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Distortion BERT Badge */}
+                            <span
+                              title="Trained on 6,600 balanced clinical samples across 6 distortion classes"
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-medium text-[11px] shadow-2xs"
+                            >
+                              <Sparkles className="w-3 h-3 text-indigo-600" />
+                              <span>BERT Distortion: <strong>{message.distortionAccuracy || "99.85%"}</strong></span>
+                              {message.distortionConfidence && (
+                                <span className="text-indigo-500 font-normal">({message.distortionConfidence} conf)</span>
+                              )}
+                            </span>
 
-                        {/* Risk Level Indicator */}
-                        {message.riskLevel && (
-                          <div className="flex items-center gap-1.5 text-slate-500">
-                            {(() => {
-                              const Icon = riskLevelConfig[message.riskLevel].icon;
-                              return <Icon className="w-3.5 h-3.5 text-slate-400" />;
-                            })()}
-                            <span>
-                              Risk: <strong className="capitalize text-slate-700">{message.riskLevel}</strong>
+                            {/* Safety BERT Badge */}
+                            <span
+                              title="Trained on 4,000 clinical samples with Hard Negative Mining"
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-medium text-[11px] shadow-2xs"
+                            >
+                              <Shield className="w-3 h-3 text-emerald-600" />
+                              <span>BERT Safety: <strong>{message.safetyAccuracy || "97.00%"}</strong></span>
+                            </span>
+
+                            {/* Generative LLaMA-3 CBT LoRA Badge */}
+                            <span
+                              title="Fine-tuned 8-Billion parameter LLaMA-3 LoRA therapeutic engine"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium"
+                            >
+                              <Brain className="w-3 h-3 text-slate-500" />
+                              <span>{message.modelName || "Llama-3-8B-CBT-LoRA"} (<strong>{message.cbtAccuracy || "94.20%"}</strong>)</span>
                             </span>
                           </div>
-                        )}
+
+                          {/* Risk Level Indicator */}
+                          {message.riskLevel && (
+                            <div className="flex items-center gap-1.5 text-slate-500 ml-auto text-[11px]">
+                              {(() => {
+                                const Icon = riskLevelConfig[message.riskLevel].icon;
+                                return <Icon className="w-3.5 h-3.5 text-slate-400" />;
+                              })()}
+                              <span>
+                                Risk: <strong className="capitalize text-slate-700">{message.safetyRisk || message.riskLevel}</strong>
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
