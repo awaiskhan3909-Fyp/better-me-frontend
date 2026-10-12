@@ -171,17 +171,6 @@ export default function ChatTherapy() {
         setShowSafetyAlert(true);
       }
 
-      // Disambiguate false-positive crisis responses on routine non-crisis distress (e.g., exam failures)
-      if (!hasActualCrisisWords && (aiContent.includes("Pakistan Mental Health Helpline") || aiContent.includes("988") || aiContent.includes("Aapki hifazat aur zindagi"))) {
-        if (/exam|test|fail|marks|flunk/i.test(userText)) {
-          aiContent = "I hear how disappointing and overwhelming it feels to fail this exam right now. Remember that failing a single exam is a temporary outcome and does not define your worth or intelligence. In CBT, we look at this as an event, not your identity. Let's explore this together: what thoughts are coming up for you, and how can we take one step forward?";
-          distortionClass = "Overgeneralization";
-          strategy = "cbt_support";
-        } else if (/sad|upset|lonely|down|tired|stress/i.test(userText)) {
-          aiContent = "I hear how difficult and heavy things feel for you right now. It takes courage to open up. What specific thoughts or situations have been weighing on you the most today?";
-          strategy = "cbt_support";
-        }
-      }
 
       // Map risk level from backend ("Safe", "Moderate", "High Risk") -> ("low", "medium", "high")
       const mappedRisk: "low" | "medium" | "high" =
