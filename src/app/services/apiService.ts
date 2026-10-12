@@ -3,6 +3,7 @@ export interface EntityItem {
   label: string;
   start?: number;
   end?: number;
+  confidence?: number;
 }
 
 export interface DistortionPrediction {
@@ -30,11 +31,13 @@ export interface CBTGuidance {
 export interface ModelBenchmarkStats {
   safety_model_accuracy: string;
   distortion_model_accuracy: string;
+  ner_model_accuracy?: string;
   cbt_model_accuracy: string;
   safety_samples_trained?: number;
   distortion_samples_trained?: number;
   safety_model_name?: string;
   distortion_model_name?: string;
+  ner_model_name?: string;
   cbt_model_name?: string;
 }
 
