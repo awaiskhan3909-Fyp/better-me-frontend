@@ -150,7 +150,7 @@ export interface DashboardStatsResponse {
   recent_sessions: SessionSummaryItem[];
   emotional_trends: EmotionalTrendItem[];
 }
-export const ACTIVE_BACKEND_URL = "https://fans-discs-advert-treasures.trycloudflare.com/api";
+export const ACTIVE_BACKEND_URL = "https://rna-rpm-wishing-kitty.trycloudflare.com/api";
 
 // Auto-purge any old/stale Cloudflare URLs from localStorage to prevent "Failed to fetch" errors
 if (typeof window !== "undefined") {
