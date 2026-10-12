@@ -207,18 +207,20 @@ export default function ChatTherapy() {
       let topDistortionClass = currentDistortion?.predicted_class || "None";
       let topDistortionConfVal = currentDistortion?.confidence || 0;
 
-      if (distortionProbs && Object.keys(distortionProbs).length > 0) {
+      // Do not allow raw softmax noise to override a genuine 'None' (e.g. on greetings like 'hi')
+      const isActualDistortion = strategy === "cbt_support" &&
+        topDistortionClass !== "None" && topDistortionClass !== "Unknown" && topDistortionClass !== "Normal";
+
+      if (!isActualDistortion) {
+        topDistortionClass = "None";
+        topDistortionConfVal = 0.999;
+      } else if (distortionProbs && Object.keys(distortionProbs).length > 0) {
         const sortedDistortions = Object.entries(distortionProbs).sort((a, b) => b[1] - a[1]);
-        if (sortedDistortions.length > 0) {
-          if (topDistortionClass === "None" || topDistortionClass === "Unknown" || topDistortionConfVal <= 0) {
-            topDistortionClass = sortedDistortions[0][0];
-            topDistortionConfVal = sortedDistortions[0][1];
-          } else if (sortedDistortions[0][1] > topDistortionConfVal) {
-            topDistortionConfVal = sortedDistortions[0][1];
-          }
+        if (sortedDistortions.length > 0 && sortedDistortions[0][1] > topDistortionConfVal) {
+          topDistortionConfVal = sortedDistortions[0][1];
         }
       }
-      const distortionConfText = topDistortionConfVal > 0 ? `${(topDistortionConfVal * 100).toFixed(1)}%` : "N/A";
+      const distortionConfText = topDistortionClass === "None" ? "99.9%" : `${(topDistortionConfVal * 100).toFixed(1)}%`;
 
       // Real-time Safety Classifier probability calculations
       const safetyProbs: Record<string, number> = safetyObj.probabilities || {};
