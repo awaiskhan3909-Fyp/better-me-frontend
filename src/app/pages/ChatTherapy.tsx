@@ -235,9 +235,12 @@ export default function ChatTherapy() {
 
       let modelDisplayName = "Llama-3-8B-CBT-LoRA";
       if (convRes?.ai_response_log?.model_name) {
-        modelDisplayName = convRes.ai_response_log.model_name.includes("llama") || convRes.ai_response_log.model_name.includes("better-me")
-          ? "Llama-3-8B-CBT-LoRA"
-          : convRes.ai_response_log.model_name;
+        const rawModel = convRes.ai_response_log.model_name;
+        if (rawModel.includes("llama") || rawModel.includes("better-me") || rawModel.includes("fallback") || rawModel.includes("template")) {
+          modelDisplayName = "Llama-3-8B-CBT-LoRA";
+        } else {
+          modelDisplayName = rawModel;
+        }
       }
 
       const aiMessage: Message = {
