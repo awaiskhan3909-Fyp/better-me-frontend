@@ -150,6 +150,15 @@ export default function ChatTherapy() {
         distortionClass = analyzeData.distortion.predicted_class;
         cbtGuidanceData = analyzeData.cbt_guidance;
         entitiesData = analyzeData.entities;
+        strategy = (analyzeData as any)?.decision?.strategy || (distortionClass && distortionClass !== "None" ? "cbt_support" : "normal_conversation");
+      }
+
+      // Conversational vs CBT Intent Safety Guard:
+      // Greetings, identity inquiries ("kon ho ap bhai", "who are you") must NEVER trigger CBT reframing or distortions!
+      const isGreetingOrIdentity = /^(?:hi|hello|hey|salam|assalam|sup|yo|kon\s+ho|kaun\s+ho|who\s+(?:are|r)\s+you|kya\s+ho\s+tum|ap\s+kon\s+ho|tum\s+kon\s+ho|who\s+is\s+this|bhai\s+kon\s+ho|kon\s+ho\s+ap\s+bhai)\b/i.test(userText.trim().toLowerCase());
+      if (isGreetingOrIdentity) {
+        strategy = "normal_conversation";
+        distortionClass = "None";
       }
 
       // Clinical Client-Side Safety Gatekeeper:
@@ -229,11 +238,20 @@ export default function ChatTherapy() {
       const safetyConfText = `${(safetyConfVal * 100).toFixed(1)}%`;
       const safetyRiskText = `${safetyRiskVal} (${safetyConfText})`;
 
-      // Real-time Context Entities
-      const nerEntitiesList: EntityItem[] = (entitiesData || []).map((ent) => ({
-        ...ent,
-        confidence: ent.confidence ?? 0.975,
-      }));
+      // Real-time Context Entities (Exclude casual slang vocatives like 'bhai' / 'brother')
+      const nerEntitiesList: EntityItem[] = (entitiesData || [])
+        .filter((ent) => {
+          if (ent.label === "FAMILY" && (ent.text.toLowerCase() === "brother" || ent.text.toLowerCase() === "bhai")) {
+            if (isGreetingOrIdentity || userText.length < 35) {
+              return false;
+            }
+          }
+          return true;
+        })
+        .map((ent) => ({
+          ...ent,
+          confidence: ent.confidence ?? 0.975,
+        }));
 
       let modelDisplayName = "Llama-3-8B-CBT-LoRA";
       if (convRes?.ai_response_log?.model_name) {
