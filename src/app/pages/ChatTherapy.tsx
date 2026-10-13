@@ -16,7 +16,7 @@ interface Message {
   content: string;
   distortions?: string[];
   riskLevel?: "low" | "medium" | "high";
-  timestamp: Date;
+  timestamp: Date | string;
   cbtGuidance?: CBTGuidance;
   entities?: EntityItem[];
   modelAccuracy?: string;
@@ -33,6 +33,19 @@ interface Message {
   nerEntities?: EntityItem[];
   cbtAccuracy?: string;
 }
+
+const formatMessageTime = (ts: any): string => {
+  if (!ts) return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  try {
+    const d = typeof ts === "string" || typeof ts === "number" ? new Date(ts) : ts;
+    if (d && typeof d.toLocaleTimeString === "function" && !isNaN(d.getTime())) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+};
 
 export default function ChatTherapy() {
   const [messages, setMessages] = useState<Message[]>([
@@ -94,7 +107,11 @@ export default function ChatTherapy() {
       try {
         const parsed = JSON.parse(savedHistory);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
+          const hydrated = parsed.map((m: any) => ({
+            ...m,
+            timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+          }));
+          setMessages(hydrated);
         }
       } catch (e) {
         console.warn("Could not load saved chat history:", e);
@@ -518,10 +535,7 @@ export default function ChatTherapy() {
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     </div>
                     <p className="text-xs text-slate-500 mt-1 text-right">
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatMessageTime(message.timestamp)}
                     </p>
                   </div>
                 ) : (
@@ -853,10 +867,7 @@ export default function ChatTherapy() {
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatMessageTime(message.timestamp)}
                     </p>
                   </div>
                 )}
