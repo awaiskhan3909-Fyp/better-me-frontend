@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
-import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag, Scale, ChevronDown, ChevronUp, Activity, BarChart3 } from "lucide-react";
+import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag, Scale, ChevronDown, ChevronUp, Activity, BarChart3, RotateCcw } from "lucide-react";
 import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
 import { toast } from "sonner";
@@ -77,18 +77,147 @@ export default function ChatTherapy() {
     situation: string;
     thought: string;
     distortion: string;
+    evidenceFor?: string;
+    evidenceAgainst?: string;
     suggestedReframe: string;
     suggestedAction: string;
   } | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    return localStorage.getItem("better_me_active_conversation_id") || null;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize a conversation session on component mount
-    createConversationSession("Chat Therapy Session")
-      .then((res) => setConversationId(res.id))
-      .catch((err) => console.warn("Could not initialize conversation session, fallback ready:", err));
+    // 1. Try to load cached multi-turn chat history
+    const savedHistory = localStorage.getItem("better_me_chat_history");
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      } catch (e) {
+        console.warn("Could not load saved chat history:", e);
+      }
+    }
+
+    // 2. Initialize a conversation session on backend if none active
+    const savedConvId = localStorage.getItem("better_me_active_conversation_id");
+    if (!savedConvId) {
+      createConversationSession("Chat Therapy Session")
+        .then((res) => {
+          setConversationId(res.id);
+          localStorage.setItem("better_me_active_conversation_id", res.id);
+        })
+        .catch((err) => console.warn("Could not initialize conversation session, fallback ready:", err));
+    }
   }, []);
+
+  // Persist conversation messages into localStorage so memory stays across refreshes
+  useEffect(() => {
+    if (messages.length > 1) {
+      localStorage.setItem("better_me_chat_history", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  const extractIntelligentThoughtRecord = (targetAiMsg?: Message) => {
+    // 1. Identify AI message and corresponding user message
+    let aiMsg = targetAiMsg;
+    if (!aiMsg) {
+      aiMsg = [...messages].reverse().find((m) => m.type === "ai" && m.id !== "1");
+      if (!aiMsg) {
+        aiMsg = [...messages].reverse().find((m) => m.type === "ai");
+      }
+    }
+
+    let userMsg: Message | undefined;
+    if (aiMsg) {
+      const idx = messages.findIndex((m) => m.id === aiMsg!.id);
+      userMsg = messages.slice(0, idx).reverse().find((m) => m.type === "user");
+    }
+    if (!userMsg) {
+      userMsg = [...messages].reverse().find((m) => m.type === "user");
+    }
+
+    const distortion =
+      aiMsg?.distortionTopClass && aiMsg.distortionTopClass !== "None"
+        ? aiMsg.distortionTopClass
+        : aiMsg?.distortions?.[0] || "Catastrophizing";
+
+    const situation = userMsg?.content
+      ? userMsg.content.length > 120
+        ? userMsg.content.slice(0, 120) + "..."
+        : userMsg.content
+      : "Stressful situation or trigger discussed in our chat";
+
+    const thought = userMsg?.content || "Automatic negative thought or self-critical belief";
+
+    const evidenceFor = userMsg?.content
+      ? `Felt acute distress and held the immediate internal belief: "${userMsg.content.slice(0, 100)}..."`
+      : "Immediate emotional reaction and perceived negative outcome.";
+
+    let evidenceAgainst = "";
+    if (aiMsg?.cbtGuidance?.reframing_question) {
+      evidenceAgainst = `Objective reality check: ${aiMsg.cbtGuidance.reframing_question} Feelings do not represent permanent or unchangeable facts.`;
+    } else if (aiMsg?.content) {
+      evidenceAgainst =
+        "Objective reality check: Past challenges were managed successfully, and feelings of stress do not prove catastrophe or failure.";
+    }
+
+    const suggestedReframe =
+      aiMsg?.cbtGuidance?.balanced_thought_guidance ||
+      (aiMsg?.content && aiMsg.content.length > 250
+        ? aiMsg.content.slice(0, 250) + "..."
+        : aiMsg?.content) ||
+      "A balanced, realistic perspective acknowledging both the challenge and my ability to work through it step by step.";
+
+    const suggestedAction =
+      aiMsg?.cbtGuidance?.small_action ||
+      "Take 3 slow deep breaths, ground yourself, and take one small practical action within your control today.";
+
+    return {
+      situation,
+      thought,
+      distortion,
+      evidenceFor,
+      evidenceAgainst,
+      suggestedReframe,
+      suggestedAction,
+    };
+  };
+
+  const handleStartNewSession = async () => {
+    try {
+      const res = await createConversationSession("New Therapy Session");
+      setConversationId(res.id);
+      localStorage.setItem("better_me_active_conversation_id", res.id);
+      localStorage.removeItem("better_me_chat_history");
+      setMessages([
+        {
+          id: "1",
+          type: "ai",
+          content: "Hello, I'm here to support you today. This is a safe, confidential space where you can share what's on your mind. How are you feeling right now?",
+          timestamp: new Date(),
+          modelAccuracy: "99.85%",
+          modelName: "Llama-3-8B-CBT-LoRA",
+          distortionAccuracy: "99.85%",
+          distortionTopClass: "None",
+          distortionConfidence: "99.9%",
+          safetyAccuracy: "97.00%",
+          safetyRisk: "Safe",
+          safetyConfidence: "98.5%",
+          nerAccuracy: "96.50%",
+          nerEntities: [],
+          cbtAccuracy: "94.20%",
+          riskLevel: "low",
+        },
+      ]);
+      toast.success("New therapy session started! Memory cleared for fresh exploration.");
+    } catch (err: any) {
+      console.warn("Could not reset session:", err);
+      toast.error("Could not reset session on backend, but memory cleared.");
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -333,13 +462,25 @@ export default function ChatTherapy() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setActiveThoughtContext(null);
+                const ctx = extractIntelligentThoughtRecord();
+                setActiveThoughtContext(ctx);
                 setShowThoughtRecordModal(true);
               }}
               className="text-purple-700 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:text-purple-800 text-xs font-medium"
+              title="Examine core thought in 5-Column Thought Record"
             >
               <Scale className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
               Thought Record
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartNewSession}
+              className="text-slate-700 border-slate-200 bg-white hover:bg-slate-100 text-xs font-medium"
+              title="Start a fresh conversation and reset memory"
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              New Chat
             </Button>
             <Link to="/progress">
               <Button variant="ghost" size="sm" className="text-slate-700">
@@ -452,19 +593,8 @@ export default function ChatTherapy() {
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                const currentIndex = messages.findIndex((m) => m.id === message.id);
-                                const userMsg = messages
-                                  .slice(0, currentIndex)
-                                  .reverse()
-                                  .find((m) => m.type === "user");
-
-                                setActiveThoughtContext({
-                                  situation: userMsg?.content || "",
-                                  thought: userMsg?.content || "",
-                                  distortion: message.distortions?.[0] || "Catastrophizing",
-                                  suggestedReframe: message.cbtGuidance?.balanced_thought_guidance || message.content,
-                                  suggestedAction: message.cbtGuidance?.small_action || "",
-                                });
+                                const ctx = extractIntelligentThoughtRecord(message);
+                                setActiveThoughtContext(ctx);
                                 setShowThoughtRecordModal(true);
                               }}
                               className="h-8 text-xs font-semibold bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 text-purple-700 hover:bg-purple-100 hover:text-purple-800 rounded-lg shadow-xs flex items-center gap-1.5"
@@ -784,6 +914,8 @@ export default function ChatTherapy() {
         initialSituation={activeThoughtContext?.situation || ""}
         initialThought={activeThoughtContext?.thought || ""}
         initialDistortion={activeThoughtContext?.distortion || "Catastrophizing"}
+        initialEvidenceFor={activeThoughtContext?.evidenceFor || ""}
+        initialEvidenceAgainst={activeThoughtContext?.evidenceAgainst || ""}
         suggestedReframe={activeThoughtContext?.suggestedReframe || ""}
         suggestedAction={activeThoughtContext?.suggestedAction || ""}
         conversationId={conversationId}

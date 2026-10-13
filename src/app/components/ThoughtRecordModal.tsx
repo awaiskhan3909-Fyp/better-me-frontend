@@ -35,6 +35,8 @@ interface ThoughtRecordModalProps {
   initialSituation?: string;
   initialThought?: string;
   initialDistortion?: string;
+  initialEvidenceFor?: string;
+  initialEvidenceAgainst?: string;
   suggestedReframe?: string;
   suggestedAction?: string;
   conversationId?: string | null;
@@ -85,6 +87,8 @@ export default function ThoughtRecordModal({
   initialSituation = "",
   initialThought = "",
   initialDistortion = "Catastrophizing",
+  initialEvidenceFor = "",
+  initialEvidenceAgainst = "",
   suggestedReframe = "",
   suggestedAction = "",
   conversationId = null,
@@ -103,8 +107,8 @@ export default function ThoughtRecordModal({
 
   const [distortionType, setDistortionType] = useState(initialDistortion || "Catastrophizing");
 
-  const [evidenceFor, setEvidenceFor] = useState("");
-  const [evidenceAgainst, setEvidenceAgainst] = useState("");
+  const [evidenceFor, setEvidenceFor] = useState(initialEvidenceFor || "");
+  const [evidenceAgainst, setEvidenceAgainst] = useState(initialEvidenceAgainst || "");
 
   const [balancedThought, setBalancedThought] = useState(suggestedReframe);
   const [outcomeBelief, setOutcomeBelief] = useState<number>(25);
@@ -120,6 +124,12 @@ export default function ThoughtRecordModal({
       if (initialDistortion && DISTORTION_INFO[initialDistortion]) {
         setDistortionType(initialDistortion);
       }
+      if (initialEvidenceFor) {
+        setEvidenceFor(initialEvidenceFor);
+      }
+      if (initialEvidenceAgainst) {
+        setEvidenceAgainst(initialEvidenceAgainst);
+      }
       if (suggestedReframe) {
         setBalancedThought(suggestedReframe);
       }
@@ -127,7 +137,7 @@ export default function ThoughtRecordModal({
         setBehavioralAction(suggestedAction);
       }
     }
-  }, [open, initialSituation, initialThought, initialDistortion, suggestedReframe, suggestedAction]);
+  }, [open, initialSituation, initialThought, initialDistortion, initialEvidenceFor, initialEvidenceAgainst, suggestedReframe, suggestedAction]);
 
   const distortionDetails = DISTORTION_INFO[distortionType] || DISTORTION_INFO["Catastrophizing"];
 
