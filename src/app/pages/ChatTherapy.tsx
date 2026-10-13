@@ -546,31 +546,7 @@ export default function ChatTherapy() {
                         {message.content}
                       </p>
 
-                      {/* Reframing Question */}
-                      {message.cbtGuidance?.reframing_question && (
-                        <div className="bg-indigo-50/70 border-l-4 border-indigo-500 rounded-r-xl p-4 my-3">
-                          <div className="flex items-center gap-2 mb-1 text-indigo-900 font-medium text-xs uppercase tracking-wider">
-                            <HelpCircle className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Reframing Reflection</span>
-                          </div>
-                          <p className="text-slate-800 italic text-sm">
-                            "{message.cbtGuidance.reframing_question}"
-                          </p>
-                        </div>
-                      )}
 
-                      {/* Suggested Small Action */}
-                      {message.cbtGuidance?.small_action && (
-                        <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 my-2">
-                          <div className="flex items-center gap-2 mb-1 text-emerald-800 font-medium text-xs uppercase tracking-wider">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Behavioral Action</span>
-                          </div>
-                          <p className="text-slate-700 text-sm">
-                            {message.cbtGuidance.small_action}
-                          </p>
-                        </div>
-                      )}
 
                       {/* Context Entities Section */}
                       {message.entities && message.entities.length > 0 && (
