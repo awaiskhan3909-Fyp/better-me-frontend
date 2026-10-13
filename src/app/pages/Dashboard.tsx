@@ -294,8 +294,8 @@ export default function Dashboard() {
                             <p className="font-medium text-slate-900 truncate">
                               {session.title}
                             </p>
-                            <Badge className={riskLevelColors[session.riskLevel.toLowerCase()] || "bg-slate-100 text-slate-700"}>
-                              {session.riskLevel} risk
+                            <Badge className={riskLevelColors[(session.risk_level || "low").toLowerCase()] || "bg-slate-100 text-slate-700"}>
+                              {session.risk_level || "Low"} risk
                             </Badge>
                           </div>
                           <p className="text-xs text-slate-500 font-['Inter'] mb-2">

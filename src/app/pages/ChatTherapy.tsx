@@ -8,7 +8,7 @@ import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
-import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem, ConversationMessageResponse, AnalyzeResponse } from "../services/apiService";
+import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem, ConversationMessageResponse, AnalyzeResponse, SafetyPrediction } from "../services/apiService";
 
 interface Message {
   id: string;
@@ -124,19 +124,19 @@ export default function ChatTherapy() {
     // 1. Identify AI message and corresponding user message
     let aiMsg = targetAiMsg;
     if (!aiMsg) {
-      aiMsg = [...messages].reverse().find((m) => m.type === "ai" && m.id !== "1");
+      aiMsg = [...messages].reverse().find((m: Message) => m.type === "ai" && m.id !== "1");
       if (!aiMsg) {
-        aiMsg = [...messages].reverse().find((m) => m.type === "ai");
+        aiMsg = [...messages].reverse().find((m: Message) => m.type === "ai");
       }
     }
 
     let userMsg: Message | undefined;
     if (aiMsg) {
-      const idx = messages.findIndex((m) => m.id === aiMsg!.id);
-      userMsg = messages.slice(0, idx).reverse().find((m) => m.type === "user");
+      const idx = messages.findIndex((m: Message) => m.id === aiMsg!.id);
+      userMsg = messages.slice(0, idx).reverse().find((m: Message) => m.type === "user");
     }
     if (!userMsg) {
-      userMsg = [...messages].reverse().find((m) => m.type === "user");
+      userMsg = [...messages].reverse().find((m: Message) => m.type === "user");
     }
 
     const distortion =
@@ -238,7 +238,7 @@ export default function ChatTherapy() {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev: Message[]) => [...prev, userMessage]);
     setInputValue("");
     setIsTyping(true);
 
@@ -256,7 +256,11 @@ export default function ChatTherapy() {
       }
 
       let aiContent = "";
-      let safetyObj = { needs_safety_alert: false, risk_level: "Safe" as const };
+      let safetyObj: SafetyPrediction = {
+        needs_safety_alert: false,
+        risk_level: "Safe",
+        probabilities: { Safe: 0.985, Moderate: 0.01, "High Risk": 0.005 },
+      };
       let distortionClass = "None";
       let cbtGuidanceData: CBTGuidance | undefined = undefined;
       let entitiesData: EntityItem[] = [];
@@ -405,7 +409,7 @@ export default function ChatTherapy() {
         cbtAccuracy: cbtBenchmark,
       };
 
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev: Message[]) => [...prev, aiMessage]);
     } catch (error: any) {
       console.error("API Error:", error);
       toast.error(error?.message || "Could not connect to Better Me AI backend server. Please make sure the backend is running.");
@@ -414,7 +418,7 @@ export default function ChatTherapy() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -436,9 +440,10 @@ export default function ChatTherapy() {
     high: { color: "bg-red-100 text-red-700 border-red-300", icon: AlertCircle, label: "High Risk" },
   };
 
-  const currentSessionRisk = messages
-    .filter((m) => m.type === "ai" && m.riskLevel)
-    .slice(-1)[0]?.riskLevel || "low";
+  const currentSessionRisk: "low" | "medium" | "high" =
+    (messages
+      .filter((m: Message) => m.type === "ai" && m.riskLevel)
+      .slice(-1)[0]?.riskLevel as "low" | "medium" | "high") || "low";
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -502,7 +507,7 @@ export default function ChatTherapy() {
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-6 py-8 max-w-4xl">
           <div className="space-y-6">
-            {messages.map((message) => (
+            {messages.map((message: Message) => (
               <div
                 key={message.id}
                 className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
@@ -558,7 +563,7 @@ export default function ChatTherapy() {
                         <div className="pt-2 flex items-center gap-2 flex-wrap">
                           <Tag className="w-3.5 h-3.5 text-slate-400" />
                           <span className="text-xs text-slate-500 font-medium">Context Tags:</span>
-                          {message.entities.map((entity, i) => (
+                          {message.entities.map((entity: EntityItem, i: number) => (
                             <Badge key={i} variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 text-[11px]">
                               {entity.label}: {entity.text}
                             </Badge>
@@ -576,7 +581,7 @@ export default function ChatTherapy() {
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            {message.distortions.map((distortion) => (
+                            {message.distortions.map((distortion: string) => (
                               <Badge
                                 key={distortion}
                                 variant="outline"
@@ -816,7 +821,7 @@ export default function ChatTherapy() {
                               </div>
                               {message.entities && message.entities.length > 0 ? (
                                 <div className="flex flex-wrap gap-1.5 bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-                                  {message.entities.map((ent, idx) => (
+                                  {message.entities.map((ent: EntityItem, idx: number) => (
                                     <div
                                       key={idx}
                                       className="inline-flex items-center gap-1.5 bg-purple-950/70 border border-purple-800/80 px-2 py-0.5 rounded text-[10px] text-purple-200"
@@ -884,7 +889,7 @@ export default function ChatTherapy() {
             <div className="flex-1 bg-slate-50 rounded-2xl border border-slate-200 p-3 focus-within:border-primary/50 focus-within:bg-white transition-all">
               <Textarea
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Share what's on your mind... (Press Enter to send, Shift+Enter for new line)"
                 className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
