@@ -153,7 +153,7 @@ export interface DashboardStatsResponse {
 const ENV_BACKEND_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
 export const ACTIVE_BACKEND_URL = (ENV_BACKEND_URL && ENV_BACKEND_URL.length > 0)
   ? (ENV_BACKEND_URL.endsWith("/api") ? ENV_BACKEND_URL : `${ENV_BACKEND_URL.replace(/\/+$/, "")}/api`)
-  : "https://liberal-daughter-students-checked.trycloudflare.com/api";
+  : "https://record-defining-earthquake-rpg.trycloudflare.com/api";
 
 // Auto-purge any stale URLs from localStorage to prevent "Failed to fetch" errors
 if (typeof window !== "undefined") {
