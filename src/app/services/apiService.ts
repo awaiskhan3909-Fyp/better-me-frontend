@@ -150,13 +150,16 @@ export interface DashboardStatsResponse {
   recent_sessions: SessionSummaryItem[];
   emotional_trends: EmotionalTrendItem[];
 }
-export const ACTIVE_BACKEND_URL = "https://liberal-daughter-students-checked.trycloudflare.com/api";
+const ENV_BACKEND_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
+export const ACTIVE_BACKEND_URL = (ENV_BACKEND_URL && ENV_BACKEND_URL.length > 0)
+  ? (ENV_BACKEND_URL.endsWith("/api") ? ENV_BACKEND_URL : `${ENV_BACKEND_URL.replace(/\/+$/, "")}/api`)
+  : "https://liberal-daughter-students-checked.trycloudflare.com/api";
 
-// Auto-purge any old/stale Cloudflare URLs from localStorage to prevent "Failed to fetch" errors
+// Auto-purge any stale URLs from localStorage to prevent "Failed to fetch" errors
 if (typeof window !== "undefined") {
   try {
     const cachedUrl = localStorage.getItem("BETTER_ME_API_URL");
-    if (cachedUrl && (cachedUrl.includes("trycloudflare.com") || cachedUrl !== ACTIVE_BACKEND_URL)) {
+    if (cachedUrl && cachedUrl !== ACTIVE_BACKEND_URL) {
       localStorage.removeItem("BETTER_ME_API_URL");
     }
   } catch (e) {
