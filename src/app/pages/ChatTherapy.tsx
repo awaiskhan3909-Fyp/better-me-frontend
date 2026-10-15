@@ -330,9 +330,10 @@ export default function ChatTherapy() {
           ? "medium"
           : "low";
 
-      // Distortions list (only display if strategy is cbt_support and a real distortion was found)
+      // Distortions list (display if a real distortion was found and not a greeting)
+      const isCasualGreeting = isGreetingOrIdentity || userText.trim().length <= 3;
       const detectedDistortions =
-        strategy === "cbt_support" && distortionClass && distortionClass !== "None"
+        !isCasualGreeting && distortionClass && distortionClass !== "None" && distortionClass !== "Unknown" && distortionClass !== "Normal"
           ? [distortionClass]
           : [];
 
@@ -356,7 +357,7 @@ export default function ChatTherapy() {
       let topDistortionConfVal = currentDistortion?.confidence || 0;
 
       // Do not allow raw softmax noise to override a genuine 'None' (e.g. on greetings like 'hi')
-      const isActualDistortion = strategy === "cbt_support" &&
+      const isActualDistortion = !isCasualGreeting &&
         topDistortionClass !== "None" && topDistortionClass !== "Unknown" && topDistortionClass !== "Normal";
 
       if (!isActualDistortion) {
