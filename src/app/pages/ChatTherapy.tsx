@@ -3,12 +3,13 @@ import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { Badge } from "../components/ui/badge";
-import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag, Scale, ChevronDown, ChevronUp, Activity, BarChart3, RotateCcw } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "../components/ui/sheet";
+import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag, Scale, ChevronDown, ChevronUp, Activity, BarChart3, RotateCcw, History, Calendar, MessageSquare, Plus } from "lucide-react";
 import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
 import { toast } from "sonner";
 import logo from "../../imports/Better_me_Logo.png";
-import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getCurrentUser, CBTGuidance, EntityItem, ConversationMessageResponse, AnalyzeResponse, SafetyPrediction } from "../services/apiService";
+import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getUserConversations, getConversationMessages, getCurrentUser, CBTGuidance, EntityItem, ConversationMessageResponse, ConversationResponse, AnalyzeResponse, SafetyPrediction } from "../services/apiService";
 
 interface Message {
   id: string;
@@ -98,10 +99,29 @@ export default function ChatTherapy() {
   const [conversationId, setConversationId] = useState<string | null>(() => {
     return localStorage.getItem("better_me_active_conversation_id") || null;
   });
+  const [pastConversations, setPastConversations] = useState<ConversationResponse[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadPastSessions = async () => {
+    try {
+      setLoadingConversations(true);
+      const user = getCurrentUser();
+      const list = await getUserConversations(user?.id);
+      setPastConversations(list || []);
+    } catch (e) {
+      console.warn("Could not load user conversations list:", e);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
   useEffect(() => {
-    // 1. Try to load cached multi-turn chat history
+    // 1. Load list of past sessions
+    loadPastSessions();
+
+    // 2. Try to load cached multi-turn chat history
     const savedHistory = localStorage.getItem("better_me_chat_history");
     if (savedHistory) {
       try {
@@ -118,13 +138,16 @@ export default function ChatTherapy() {
       }
     }
 
-    // 2. Initialize a conversation session on backend if none active
+    // 3. Initialize a conversation session on backend if none active
     const savedConvId = localStorage.getItem("better_me_active_conversation_id");
+    const user = getCurrentUser();
     if (!savedConvId) {
-      createConversationSession("Chat Therapy Session")
+      const initTitle = `Therapy Session ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      createConversationSession(initTitle, user?.id)
         .then((res) => {
           setConversationId(res.id);
           localStorage.setItem("better_me_active_conversation_id", res.id);
+          loadPastSessions();
         })
         .catch((err) => console.warn("Could not initialize conversation session, fallback ready:", err));
     }
@@ -203,17 +226,47 @@ export default function ChatTherapy() {
     };
   };
 
-  const handleStartNewSession = async () => {
+  const handleSelectSession = async (session: ConversationResponse) => {
     try {
-      const res = await createConversationSession("New Therapy Session");
-      setConversationId(res.id);
-      localStorage.setItem("better_me_active_conversation_id", res.id);
-      localStorage.removeItem("better_me_chat_history");
-      setMessages([
-        {
+      setIsHistoryOpen(false);
+      setConversationId(session.id);
+      localStorage.setItem("better_me_active_conversation_id", session.id);
+
+      const dbMessages = await getConversationMessages(session.id);
+      if (dbMessages && dbMessages.length > 0) {
+        const mapped: Message[] = dbMessages.map((m) => {
+          const isUser = m.sender_type === "user";
+          return {
+            id: m.id,
+            type: isUser ? "user" : "ai",
+            content: m.content,
+            timestamp: new Date(m.created_at),
+            modelName: "Llama-3-8B-CBT-LoRA",
+            distortionAccuracy: "99.85%",
+            distortionTopClass: "None",
+            distortionConfidence: "99.9%",
+            safetyAccuracy: "97.00%",
+            safetyRisk: "Safe",
+            safetyConfidence: "98.5%",
+            nerAccuracy: "96.50%",
+            nerEntities: [],
+            cbtAccuracy: "94.20%",
+            riskLevel:
+              session.current_risk_level?.toLowerCase() === "high risk" || session.current_risk_level?.toLowerCase() === "high"
+                ? "high"
+                : session.current_risk_level?.toLowerCase() === "moderate" || session.current_risk_level?.toLowerCase() === "medium"
+                ? "medium"
+                : "low",
+          };
+        });
+        setMessages(mapped);
+        localStorage.setItem("better_me_chat_history", JSON.stringify(mapped));
+        toast.success(`Loaded session: ${session.title || "Therapy Session"}`);
+      } else {
+        const freshGreeting: Message = {
           id: "1",
           type: "ai",
-          content: "Hello, I'm here to support you today. This is a safe, confidential space where you can share what's on your mind. How are you feeling right now?",
+          content: "Hello, I'm here to support you today. This is a safe space to explore your thoughts and emotions. What's on your mind?",
           timestamp: new Date(),
           modelAccuracy: "99.85%",
           modelName: "Llama-3-8B-CBT-LoRA",
@@ -227,12 +280,48 @@ export default function ChatTherapy() {
           nerEntities: [],
           cbtAccuracy: "94.20%",
           riskLevel: "low",
-        },
-      ]);
-      toast.success("New therapy session started! Memory cleared for fresh exploration.");
+        };
+        setMessages([freshGreeting]);
+        localStorage.setItem("better_me_chat_history", JSON.stringify([freshGreeting]));
+      }
+    } catch (err: any) {
+      console.error("Could not load session messages:", err);
+      toast.error("Could not load messages for selected session.");
+    }
+  };
+
+  const handleStartNewSession = async () => {
+    try {
+      const user = getCurrentUser();
+      const sessionTitle = `Session ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`;
+      const res = await createConversationSession(sessionTitle, user?.id);
+      setConversationId(res.id);
+      localStorage.setItem("better_me_active_conversation_id", res.id);
+      const initialGreeting: Message = {
+        id: "1",
+        type: "ai",
+        content: "Hello, I'm here to support you today. This is a safe, confidential space where you can share what's on your mind. How are you feeling right now?",
+        timestamp: new Date(),
+        modelAccuracy: "99.85%",
+        modelName: "Llama-3-8B-CBT-LoRA",
+        distortionAccuracy: "99.85%",
+        distortionTopClass: "None",
+        distortionConfidence: "99.9%",
+        safetyAccuracy: "97.00%",
+        safetyRisk: "Safe",
+        safetyConfidence: "98.5%",
+        nerAccuracy: "96.50%",
+        nerEntities: [],
+        cbtAccuracy: "94.20%",
+        riskLevel: "low",
+      };
+      setMessages([initialGreeting]);
+      localStorage.setItem("better_me_chat_history", JSON.stringify([initialGreeting]));
+      toast.success("New session started! Prior sessions remain saved in History.");
+      loadPastSessions();
     } catch (err: any) {
       console.warn("Could not reset session:", err);
-      toast.error("Could not reset session on backend, but memory cleared.");
+      toast.error("Could not start session on backend, but started locally.");
     }
   };
 
@@ -495,12 +584,122 @@ export default function ChatTherapy() {
               <Scale className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
               Thought Record
             </Button>
+
+            {/* Chat History Drawer */}
+            <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    loadPastSessions();
+                    setIsHistoryOpen(true);
+                  }}
+                  className="text-slate-700 border-slate-200 bg-white hover:bg-slate-100 text-xs font-medium"
+                  title="View previous therapy conversations"
+                >
+                  <History className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                  Past Sessions
+                  {pastConversations.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-semibold">
+                      {pastConversations.length}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[320px] sm:w-[380px] p-0 flex flex-col bg-white">
+                <SheetHeader className="p-4 border-b bg-slate-50/70">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                      <History className="w-4 h-4 text-primary" />
+                      Session History
+                    </SheetTitle>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        handleStartNewSession();
+                        setIsHistoryOpen(false);
+                      }}
+                      className="bg-primary hover:bg-primary-dark text-white text-xs h-8 px-2.5 rounded-lg"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      New
+                    </Button>
+                  </div>
+                  <SheetDescription className="text-xs text-slate-500">
+                    Switch between past sessions or review previous conversations
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  {loadingConversations ? (
+                    <div className="text-center py-8 text-xs text-slate-400">Loading sessions...</div>
+                  ) : pastConversations.length === 0 ? (
+                    <div className="text-center py-12 px-4 space-y-2">
+                      <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
+                      <p className="text-sm font-medium text-slate-700">No Past Sessions Yet</p>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        When you chat with Better Me, your clinical sessions will automatically appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    pastConversations.map((sess) => {
+                      const isActive = sess.id === conversationId;
+                      const dateStr = new Date(sess.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                      const risk = (sess.current_risk_level || "Safe").toLowerCase();
+                      const riskBadge =
+                        risk.includes("high") ? "bg-red-50 text-red-700 border-red-200" :
+                        risk.includes("mod") || risk.includes("med") ? "bg-amber-50 text-amber-700 border-amber-200" :
+                        "bg-green-50 text-green-700 border-green-200";
+
+                      return (
+                        <div
+                          key={sess.id}
+                          onClick={() => handleSelectSession(sess)}
+                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                            isActive
+                              ? "bg-primary/5 border-primary/40 shadow-sm ring-1 ring-primary/20"
+                              : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className={`text-sm font-medium truncate ${isActive ? "text-primary font-semibold" : "text-slate-800"}`}>
+                              {sess.title || "Therapy Session"}
+                            </p>
+                            {isActive && (
+                              <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              {dateStr}
+                            </span>
+                            <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${riskBadge}`}>
+                              {sess.current_risk_level || "Safe"}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+
             <Button
               variant="outline"
               size="sm"
               onClick={handleStartNewSession}
               className="text-slate-700 border-slate-200 bg-white hover:bg-slate-100 text-xs font-medium"
-              title="Start a fresh conversation and reset memory"
+              title="Start a fresh conversation"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
               New Chat

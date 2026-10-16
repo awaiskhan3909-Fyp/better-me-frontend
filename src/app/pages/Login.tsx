@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Brain, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Brain, Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AuthLogo from "../components/AuthLogo";
 import { loginUser, setCurrentUser } from "../services/apiService";
@@ -30,17 +30,23 @@ export default function Login() {
 
     try {
       // 1. Check if Supabase requires email verification
-      const { data: supaLogin, error: supaErr } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: password,
-      });
+      try {
+        const { error: supaErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: password,
+        });
 
-      if (supaErr && supaErr.message.toLowerCase().includes("email not confirmed")) {
-        toast.info("Please enter your 6-digit verification code to activate your account.");
-        navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
-        return;
+        if (supaErr && supaErr.message.toLowerCase().includes("email not confirmed")) {
+          toast.info("Please enter your 6-digit verification code to activate your account.");
+          navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
+          return;
+        }
+      } catch (e) {
+        // Supabase check is optional if backend handles auth
+        console.warn("Supabase auth pre-check notice:", e);
       }
 
+      // 2. Authenticate against FastAPI backend with hashed password verification
       const res = await loginUser(cleanEmail, password);
       toast.success(`Welcome back, ${res.user.full_name || "Friend"}!`);
       if (!res.user.has_completed_intake) {
@@ -49,16 +55,36 @@ export default function Login() {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      // Offline fallback: allow login with demo session
+      console.error("Login verification error:", err);
+      const errMsg = err?.message || "";
+      if (errMsg.toLowerCase().includes("invalid") || errMsg.toLowerCase().includes("password") || errMsg.includes("401")) {
+        toast.error("Invalid email or password. Please check your credentials or create an account.");
+      } else {
+        toast.error(errMsg || "Could not log in. Please ensure the backend server is running.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    try {
+      // Attempt backend login for verified demo user
+      const res = await loginUser("demo_user@betterme.app", "demo_password_123");
+      toast.success(`Signed in as Demo User (${res.user.full_name || "Demo"})`);
+      navigate("/dashboard");
+    } catch (err: any) {
+      // Fallback demo user with standard UUID for offline presentation
       setCurrentUser({
-        id: "demo-user-" + Date.now(),
-        email: cleanEmail,
-        full_name: cleanEmail.split("@")[0],
+        id: "00000000-0000-0000-0000-000000000001",
+        email: "demo_user@betterme.app",
+        full_name: "Demo Patient",
         is_active: true,
         has_completed_intake: true,
         created_at: new Date().toISOString(),
       });
-      toast.info("Signing in to dashboard...");
+      toast.info("Signed in as Demo User (Offline Mode)");
       navigate("/dashboard");
     } finally {
       setLoading(false);
@@ -146,6 +172,26 @@ export default function Login() {
                 className="w-full bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white rounded-xl shadow-lg shadow-primary/25 h-11 text-base font-medium mt-2 hover:scale-[1.01] active:scale-[0.99] transition-all"
               >
                 {loading ? "Signing In..." : "Sign In"}
+              </Button>
+
+              <div className="relative my-3">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white/90 px-2 text-slate-400 font-medium">Or demo testing</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                onClick={handleDemoLogin}
+                className="w-full border-primary/30 text-primary hover:bg-primary/5 rounded-xl h-10 text-sm font-medium transition-all"
+              >
+                <Sparkles className="w-4 h-4 mr-2 text-primary" />
+                Quick Demo Sign-In
               </Button>
             </form>
 

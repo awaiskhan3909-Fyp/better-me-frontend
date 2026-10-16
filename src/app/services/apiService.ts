@@ -82,6 +82,25 @@ export interface ConversationMessageResponse {
   ai_response_log: any;
 }
 
+export interface ConversationResponse {
+  id: string;
+  user_id: string;
+  title: string;
+  current_risk_level: string;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MessageDetailResponse {
+  id: string;
+  conversation_id: string;
+  sender_type: string;
+  content: string;
+  sequence_number: number;
+  created_at: string;
+}
+
 // --- Auth & User Profile Interfaces ---
 
 export interface User {
@@ -287,6 +306,29 @@ export async function createConversationSession(title: string = "New Session", u
 
   if (!response.ok) {
     throw new Error(`Failed to create conversation session (${response.status})`);
+  }
+
+  return response.json();
+}
+
+export async function getUserConversations(userId?: string): Promise<ConversationResponse[]> {
+  const queryParam = userId ? `?user_id=${encodeURIComponent(userId)}` : "";
+  const response = await fetch(`${API_BASE_URL}/conversations${queryParam}`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch conversations" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function getConversationMessages(conversationId: string): Promise<MessageDetailResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch messages" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
   }
 
   return response.json();
