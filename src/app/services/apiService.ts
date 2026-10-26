@@ -253,6 +253,33 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
   return result;
 }
 
+export async function syncUserPassword(
+  email: string,
+  password: string,
+  userId?: string,
+  fullName?: string
+): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE_URL}/auth/sync-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password,
+      user_id: userId || null,
+      full_name: fullName || null,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to synchronize password" }));
+    throw new Error(errorData.detail || `Sync failed with status ${response.status}`);
+  }
+
+  const result: AuthResponse = await response.json();
+  setCurrentUser(result.user);
+  return result;
+}
+
 export async function submitIntakeAssessment(
   userId: string,
   payload: IntakeAssessmentRequest

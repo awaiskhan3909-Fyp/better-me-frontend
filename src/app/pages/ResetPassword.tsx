@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Lock, ArrowLeft, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 import AuthLogo from "../components/AuthLogo";
 import { supabase } from "../services/supabaseClient";
+import { syncUserPassword } from "../services/apiService";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -62,6 +63,16 @@ export default function ResetPassword() {
 
       if (error) {
         throw error;
+      }
+
+      // Sync updated password with FastAPI backend
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+          await syncUserPassword(user.email, newPassword, user.id, user.user_metadata?.full_name);
+        }
+      } catch (syncErr) {
+        console.warn("Backend sync notice during password update:", syncErr);
       }
 
       toast.success("Password reset successfully! Please sign in with your new password.");

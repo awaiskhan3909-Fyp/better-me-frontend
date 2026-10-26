@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Brain, Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AuthLogo from "../components/AuthLogo";
-import { loginUser, setCurrentUser } from "../services/apiService";
+import { loginUser, syncUserPassword, setCurrentUser } from "../services/apiService";
 import { supabase } from "../services/supabaseClient";
 
 export default function Login() {
@@ -29,27 +29,63 @@ export default function Login() {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Check if Supabase requires email verification
+      let supaAuthenticated = false;
+      let supaUserId: string | null = null;
+      let supaFullName: string | null = null;
+
+      // 1. Primary check: Supabase Auth
       try {
-        const { error: supaErr } = await supabase.auth.signInWithPassword({
+        const { data: supaData, error: supaErr } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password: password,
         });
 
-        if (supaErr && supaErr.message.toLowerCase().includes("email not confirmed")) {
-          toast.info("Please enter your 6-digit verification code to activate your account.");
-          navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
-          return;
+        if (supaErr) {
+          if (supaErr.message.toLowerCase().includes("email not confirmed")) {
+            toast.info("Please enter your 6-digit verification code to activate your account.");
+            navigate(`/verify-otp?email=${encodeURIComponent(cleanEmail)}`);
+            return;
+          }
+          console.warn("Supabase auth notice:", supaErr.message);
+        } else if (supaData?.user) {
+          supaAuthenticated = true;
+          supaUserId = supaData.user.id;
+          supaFullName = supaData.user.user_metadata?.full_name || null;
         }
       } catch (e) {
-        // Supabase check is optional if backend handles auth
         console.warn("Supabase auth pre-check notice:", e);
       }
 
-      // 2. Authenticate against FastAPI backend with hashed password verification
-      const res = await loginUser(cleanEmail, password);
-      toast.success(`Welcome back, ${res.user.full_name || "Friend"}!`);
-      if (!res.user.has_completed_intake) {
+      // 2. Authenticate against FastAPI backend with automatic password sync fallback
+      let activeUser = null;
+      try {
+        const res = await loginUser(cleanEmail, password);
+        activeUser = res.user;
+      } catch (backendErr: any) {
+        // If Supabase verified credentials, sync password with backend or recover session
+        if (supaAuthenticated) {
+          try {
+            const syncRes = await syncUserPassword(cleanEmail, password, supaUserId || undefined, supaFullName || undefined);
+            activeUser = syncRes.user;
+          } catch (syncErr) {
+            console.warn("Could not sync with backend database, using Supabase verified session:", syncErr);
+            activeUser = {
+              id: supaUserId || "user-" + Date.now(),
+              email: cleanEmail,
+              full_name: supaFullName || cleanEmail.split("@")[0],
+              is_active: true,
+              has_completed_intake: false,
+              created_at: new Date().toISOString(),
+            };
+            setCurrentUser(activeUser);
+          }
+        } else {
+          throw backendErr;
+        }
+      }
+
+      toast.success(`Welcome back, ${activeUser?.full_name || "Friend"}!`);
+      if (!activeUser?.has_completed_intake) {
         navigate("/onboarding");
       } else {
         navigate("/dashboard");
