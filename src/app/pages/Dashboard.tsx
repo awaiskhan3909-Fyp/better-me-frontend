@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import BetterMeLogo from "../../imports/Better_me_Logo.png";
 import MobileBottomNav from "../components/MobileBottomNav";
+import ServerStatusIndicator from "../components/ServerStatusIndicator";
 import { toast } from "sonner";
 import {
   getCurrentUser,
@@ -279,14 +280,17 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2 bg-white pl-1.5 pr-3 py-1 rounded-full shadow-2xs border border-slate-100">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#2a5fb7] to-[#b8a1ff] text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                {firstName[0] || "U"}
+            {/* Server Status & Profile Avatar Pill */}
+            <div className="flex items-center gap-2">
+              <ServerStatusIndicator />
+              <div className="flex items-center gap-2 bg-white pl-1.5 pr-3 py-1 rounded-full shadow-2xs border border-slate-100">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#2a5fb7] to-[#b8a1ff] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  {firstName[0] || "U"}
+                </div>
+                <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
+                  {userName}
+                </span>
               </div>
-              <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
-                {userName}
-              </span>
             </div>
           </header>
 

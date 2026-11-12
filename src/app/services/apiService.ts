@@ -1,4 +1,4 @@
-export interface EntityItem {
+﻿export interface EntityItem {
   text: string;
   label: string;
   start?: number;
@@ -179,24 +179,105 @@ export interface DashboardStatsResponse {
   emotional_trends: EmotionalTrendItem[];
   therapy_overview?: TherapyOverviewData;
 }
-const ENV_BACKEND_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
-export const ACTIVE_BACKEND_URL = (ENV_BACKEND_URL && ENV_BACKEND_URL.length > 0)
-  ? (ENV_BACKEND_URL.endsWith("/api") ? ENV_BACKEND_URL : `${ENV_BACKEND_URL.replace(/\/+$/, "")}/api`)
-  : "http://127.0.0.1:8000/api";
+export const STORAGE_KEY_API_URL = "BETTER_ME_API_URL";
 
-// Auto-purge any stale URLs from localStorage to prevent "Failed to fetch" errors
-if (typeof window !== "undefined") {
-  try {
-    const cachedUrl = localStorage.getItem("BETTER_ME_API_URL");
-    if (cachedUrl && cachedUrl !== ACTIVE_BACKEND_URL) {
-      localStorage.removeItem("BETTER_ME_API_URL");
+export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    try {
+      const custom = localStorage.getItem(STORAGE_KEY_API_URL)?.trim();
+      if (custom && custom.length > 0) {
+        return custom.endsWith("/api") ? custom : `${custom.replace(/\/+$/, "")}/api`;
+      }
+    } catch {
+      // ignore
     }
-  } catch (e) {
-    // ignore
+  }
+  const envUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
+  if (envUrl && envUrl.length > 0) {
+    return envUrl.endsWith("/api") ? envUrl : `${envUrl.replace(/\/+$/, "")}/api`;
+  }
+  return "http://127.0.0.1:8000/api";
+}
+
+export function setCustomApiUrl(rawUrl: string): string {
+  let clean = rawUrl.trim().replace(/\/+$/, "");
+  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+    clean = `https://${clean}`;
+  }
+  const apiUrl = clean.endsWith("/api") ? clean : `${clean}/api`;
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY_API_URL, apiUrl);
+  }
+  return apiUrl;
+}
+
+export function clearCustomApiUrl(): void {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(STORAGE_KEY_API_URL);
   }
 }
 
-const API_BASE_URL = ACTIVE_BACKEND_URL;
+export async function checkBackendHealth(targetUrl?: string): Promise<{
+  ok: boolean;
+  service?: string;
+  cuda?: boolean;
+  gpu?: string;
+  statusText?: string;
+  error?: string;
+}> {
+  let base = (targetUrl && targetUrl.trim().length > 0) ? targetUrl.trim().replace(/\/+$/, "") : getApiBaseUrl();
+  if (!base.startsWith("http://") && !base.startsWith("https://")) {
+    base = `https://${base}`;
+  }
+  const apiUrl = base.endsWith("/api") ? base : `${base}/api`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+    const res = await fetch(`${apiUrl}/health`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      return { ok: false, error: `Backend responded with status ${res.status}` };
+    }
+    const data = await res.json();
+
+    // Check LLM / GPU status
+    let gpuName: string | undefined;
+    let cudaAvailable: boolean | undefined;
+    try {
+      const llmCtrl = new AbortController();
+      const llmTimeout = setTimeout(() => llmCtrl.abort(), 4000);
+      const llmRes = await fetch(`${apiUrl}/llm-status`, { signal: llmCtrl.signal });
+      clearTimeout(llmTimeout);
+      if (llmRes.ok) {
+        const llmData = await llmRes.json();
+        gpuName = llmData.gpu_name || undefined;
+        cudaAvailable = llmData.cuda_available;
+      }
+    } catch {
+      // non-blocking
+    }
+
+    return {
+      ok: true,
+      service: data.service || "Better Me AI Backend",
+      cuda: cudaAvailable,
+      gpu: gpuName,
+      statusText: gpuName ? `Connected (${gpuName})` : "Connected to Backend",
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      error: err?.name === "AbortError" ? "Connection timed out (7s). Please check your Kaggle URL." : (err?.message || "Failed to reach backend"),
+    };
+  }
+}
+
+export const ACTIVE_BACKEND_URL = getApiBaseUrl();
 
 // --- Session Persistence Helpers ---
 
@@ -230,7 +311,7 @@ export function logoutUser(): void {
 // --- API Service Methods ---
 
 export async function registerUser(email: string, password: string, fullName?: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const response = await fetch(`${getApiBaseUrl()}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, full_name: fullName }),
@@ -247,7 +328,7 @@ export async function registerUser(email: string, password: string, fullName?: s
 }
 
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await fetch(`${getApiBaseUrl()}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -269,7 +350,7 @@ export async function syncUserPassword(
   userId?: string,
   fullName?: string
 ): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/sync-password`, {
+  const response = await fetch(`${getApiBaseUrl()}/auth/sync-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -294,7 +375,7 @@ export async function submitIntakeAssessment(
   userId: string,
   payload: IntakeAssessmentRequest
 ): Promise<IntakeAssessmentResponse> {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}/intake`, {
+  const response = await fetch(`${getApiBaseUrl()}/users/${userId}/intake`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -317,7 +398,7 @@ export async function submitIntakeAssessment(
 
 export async function getDashboardStats(userId?: string): Promise<DashboardStatsResponse> {
   const queryParam = userId ? `?user_id=${encodeURIComponent(userId)}` : "";
-  const response = await fetch(`${API_BASE_URL}/dashboard/stats${queryParam}`);
+  const response = await fetch(`${getApiBaseUrl()}/dashboard/stats${queryParam}`);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to load dashboard stats" }));
@@ -333,7 +414,7 @@ export async function createConversationSession(title: string = "New Session", u
     bodyPayload.user_id = userId;
   }
 
-  const response = await fetch(`${API_BASE_URL}/conversations`, {
+  const response = await fetch(`${getApiBaseUrl()}/conversations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -350,7 +431,7 @@ export async function createConversationSession(title: string = "New Session", u
 
 export async function getUserConversations(userId?: string): Promise<ConversationResponse[]> {
   const queryParam = userId ? `?user_id=${encodeURIComponent(userId)}` : "";
-  const response = await fetch(`${API_BASE_URL}/conversations${queryParam}`);
+  const response = await fetch(`${getApiBaseUrl()}/conversations${queryParam}`);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch conversations" }));
@@ -361,7 +442,7 @@ export async function getUserConversations(userId?: string): Promise<Conversatio
 }
 
 export async function updateConversationTitle(conversationId: string, title: string): Promise<ConversationResponse> {
-  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}`, {
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${encodeURIComponent(conversationId)}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -378,7 +459,7 @@ export async function updateConversationTitle(conversationId: string, title: str
 }
 
 export async function deleteConversationSession(conversationId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}`, {
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${encodeURIComponent(conversationId)}`, {
     method: "DELETE",
   });
 
@@ -389,7 +470,7 @@ export async function deleteConversationSession(conversationId: string): Promise
 }
 
 export async function getConversationMessages(conversationId: string): Promise<MessageDetailResponse[]> {
-  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`);
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${conversationId}/messages`);
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch messages" }));
@@ -403,7 +484,7 @@ export async function sendMessageInConversation(
   conversationId: string,
   text: string
 ): Promise<ConversationMessageResponse> {
-  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`, {
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${conversationId}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -420,7 +501,7 @@ export async function sendMessageInConversation(
 }
 
 export async function analyzeUserMessage(text: string): Promise<AnalyzeResponse> {
-  const response = await fetch(`${API_BASE_URL}/analyze`, {
+  const response = await fetch(`${getApiBaseUrl()}/analyze`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -465,7 +546,7 @@ export interface EpisodicTherapyMemory {
 }
 
 export async function getPatientClinicalProfile(userId: string): Promise<PatientClinicalProfile> {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}/clinical-profile`);
+  const response = await fetch(`${getApiBaseUrl()}/users/${userId}/clinical-profile`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch clinical profile" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -474,7 +555,7 @@ export async function getPatientClinicalProfile(userId: string): Promise<Patient
 }
 
 export async function getPatientEpisodicMemories(userId: string): Promise<EpisodicTherapyMemory[]> {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}/memories`);
+  const response = await fetch(`${getApiBaseUrl()}/users/${userId}/memories`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch episodic memories" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -520,7 +601,7 @@ export interface CBTThoughtRecord {
 }
 
 export async function createThoughtRecord(payload: CreateThoughtRecordRequest): Promise<CBTThoughtRecord> {
-  const response = await fetch(`${API_BASE_URL}/thought-records`, {
+  const response = await fetch(`${getApiBaseUrl()}/thought-records`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -533,7 +614,7 @@ export async function createThoughtRecord(payload: CreateThoughtRecordRequest): 
 }
 
 export async function getThoughtRecords(userId: string): Promise<CBTThoughtRecord[]> {
-  const response = await fetch(`${API_BASE_URL}/thought-records?user_id=${encodeURIComponent(userId)}`);
+  const response = await fetch(`${getApiBaseUrl()}/thought-records?user_id=${encodeURIComponent(userId)}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch thought records" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -542,7 +623,7 @@ export async function getThoughtRecords(userId: string): Promise<CBTThoughtRecor
 }
 
 export async function deleteThoughtRecord(recordId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/thought-records/${recordId}`, {
+  const response = await fetch(`${getApiBaseUrl()}/thought-records/${recordId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -581,7 +662,7 @@ export interface SessionReportSummary {
 export async function downloadSessionReport(conversationId: string, customFilename?: string): Promise<void> {
   const user = getCurrentUser();
   const userParam = user?.id ? `?user_id=${encodeURIComponent(user.id)}` : "";
-  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}/report${userParam}`);
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${encodeURIComponent(conversationId)}/report${userParam}`);
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to download PDF report" }));
@@ -616,7 +697,7 @@ export async function downloadSessionReport(conversationId: string, customFilena
 export async function getSessionReportSummary(conversationId: string): Promise<SessionReportSummary> {
   const user = getCurrentUser();
   const userParam = user?.id ? `?user_id=${encodeURIComponent(user.id)}` : "";
-  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}/report/summary${userParam}`);
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${encodeURIComponent(conversationId)}/report/summary${userParam}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch report summary" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -666,7 +747,7 @@ export interface CBTExerciseProgressSummary {
 }
 
 export async function submitCBTExercise(payload: CBTExerciseSubmitPayload): Promise<CBTExerciseRecord> {
-  const response = await fetch(`${API_BASE_URL}/cbt-exercises/submit`, {
+  const response = await fetch(`${getApiBaseUrl()}/cbt-exercises/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -680,7 +761,7 @@ export async function submitCBTExercise(payload: CBTExerciseSubmitPayload): Prom
 
 export async function getUserCBTExercises(userId: string, distortionCategory?: string): Promise<CBTExerciseRecord[]> {
   const catParam = distortionCategory ? `&distortion_category=${encodeURIComponent(distortionCategory)}` : "";
-  const response = await fetch(`${API_BASE_URL}/cbt-exercises?user_id=${encodeURIComponent(userId)}${catParam}`);
+  const response = await fetch(`${getApiBaseUrl()}/cbt-exercises?user_id=${encodeURIComponent(userId)}${catParam}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch practice exercises" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -689,7 +770,7 @@ export async function getUserCBTExercises(userId: string, distortionCategory?: s
 }
 
 export async function getUserCBTExerciseProgress(userId: string): Promise<CBTExerciseProgressSummary> {
-  const response = await fetch(`${API_BASE_URL}/cbt-exercises/progress?user_id=${encodeURIComponent(userId)}`);
+  const response = await fetch(`${getApiBaseUrl()}/cbt-exercises/progress?user_id=${encodeURIComponent(userId)}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch exercise progress" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -698,7 +779,7 @@ export async function getUserCBTExerciseProgress(userId: string): Promise<CBTExe
 }
 
 export async function getUserCBTExerciseDetail(userId: string, exerciseId: string): Promise<CBTExerciseRecord> {
-  const response = await fetch(`${API_BASE_URL}/cbt-exercises/${encodeURIComponent(exerciseId)}?user_id=${encodeURIComponent(userId)}`);
+  const response = await fetch(`${getApiBaseUrl()}/cbt-exercises/${encodeURIComponent(exerciseId)}?user_id=${encodeURIComponent(userId)}`);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Failed to fetch exercise detail" }));
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
@@ -731,7 +812,7 @@ export interface CreateStressReliefRequest {
 export async function recordStressReliefActivity(
   payload: CreateStressReliefRequest
 ): Promise<StressReliefRecord> {
-  const response = await fetch(`${API_BASE_URL}/stress-relief/record`, {
+  const response = await fetch(`${getApiBaseUrl()}/stress-relief/record`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -748,7 +829,7 @@ export async function getStressReliefHistory(
   limit: number = 10
 ): Promise<StressReliefRecord[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/stress-relief/history?user_id=${encodeURIComponent(userId)}&limit=${limit}`);
+    const response = await fetch(`${getApiBaseUrl()}/stress-relief/history?user_id=${encodeURIComponent(userId)}&limit=${limit}`);
     if (!response.ok) {
       return [];
     }

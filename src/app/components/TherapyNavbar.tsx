@@ -18,6 +18,7 @@ import {
 import logo from "../../imports/Better_me_Logo.png";
 import { getCurrentUser, logoutUser } from "../services/apiService";
 import SafetyAlertModal from "./SafetyAlertModal";
+import ServerStatusIndicator from "./ServerStatusIndicator";
 
 interface TherapyNavbarProps {
   onOpenThoughtModal?: () => void;
@@ -112,8 +113,10 @@ export default function TherapyNavbar({ onOpenThoughtModal }: TherapyNavbarProps
               })}
             </nav>
 
-            {/* Right: Actions, SOS Help, Profile */}
-            <div className="flex items-center gap-2.5">
+            {/* Right: Actions, Server Status, SOS Help, Profile */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              <ServerStatusIndicator />
+
               {/* Emergency SOS Crisis Button */}
               <Button
                 variant="outline"

@@ -28,6 +28,7 @@ import {
 import BetterMeLogo from "../../imports/Better_me_Logo.png";
 import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
+import ServerStatusIndicator from "../components/ServerStatusIndicator";
 import { toast } from "sonner";
 import {
   analyzeUserMessage,
@@ -444,7 +445,13 @@ export default function ChatTherapy() {
       setMessages((prev: Message[]) => [...prev, aiMessage]);
     } catch (error: any) {
       console.error("Chat API Error:", error);
-      toast.error(error?.message || "Could not connect to Better Me AI. Please ensure the backend is active.");
+      toast.error(
+        error?.message || "Could not connect to Better Me AI. Please ensure the backend is active.",
+        {
+          description: "If running on Kaggle GPU, click 'Connect Kaggle GPU' in the top bar to paste your Cloudflare Tunnel URL.",
+          duration: 6000,
+        }
+      );
     } finally {
       setIsTyping(false);
     }
@@ -733,6 +740,7 @@ export default function ChatTherapy() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <ServerStatusIndicator />
             <Button
               variant="outline"
               size="sm"
