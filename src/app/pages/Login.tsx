@@ -128,7 +128,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/30 to-slate-100 flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/30 to-slate-100 flex items-center justify-center p-4 sm:p-6 font-sans">
       {/* Ambient Floating Gradient Orbs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br from-primary/20 via-sky-300/20 to-transparent blur-3xl pointer-events-none animate-blob-1" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-gradient-to-tl from-secondary/20 via-indigo-200/20 to-transparent blur-3xl pointer-events-none animate-blob-2" />
@@ -237,19 +237,6 @@ export default function Login() {
                 <Link to="/register" className="text-primary hover:text-primary-dark font-semibold hover:underline">
                   Create one
                 </Link>
-              </p>
-            </div>
-
-            {/* Academic FYP Attribution Capsule */}
-            <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-1 bg-slate-50/70 rounded-2xl p-3 border border-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                🎓 BS Final Year Project (FYP)
-              </p>
-              <p className="text-xs text-slate-700 font-medium">
-                <strong>Team:</strong> Awais Khan • Saad Abdullah • Ajiya Asif
-              </p>
-              <p className="text-[11px] text-slate-500">
-                <strong>Supervisor:</strong> Mam Farnaz Akbar
               </p>
             </div>
           </CardContent>

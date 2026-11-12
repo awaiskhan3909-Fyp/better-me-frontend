@@ -157,22 +157,32 @@ export interface EmotionalTrendItem {
   risk_level: string;
 }
 
+export interface TherapyOverviewData {
+  recent_distortions: string[];
+  latest_session_date: string | null;
+  latest_reflection: string | null;
+  recommended_next_step: string;
+}
+
 export interface DashboardStatsResponse {
   user_name: string;
   total_sessions: number;
   avg_duration_minutes: number;
   total_messages: number;
+  thoughts_analyzed?: number;
+  categories_practiced?: number;
   current_risk_level: string;
   primary_focus: string[];
   primary_goal?: string | null;
   distortions_breakdown: Record<string, number>;
   recent_sessions: SessionSummaryItem[];
   emotional_trends: EmotionalTrendItem[];
+  therapy_overview?: TherapyOverviewData;
 }
 const ENV_BACKEND_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
 export const ACTIVE_BACKEND_URL = (ENV_BACKEND_URL && ENV_BACKEND_URL.length > 0)
   ? (ENV_BACKEND_URL.endsWith("/api") ? ENV_BACKEND_URL : `${ENV_BACKEND_URL.replace(/\/+$/, "")}/api`)
-  : "https://record-defining-earthquake-rpg.trycloudflare.com/api";
+  : "http://127.0.0.1:8000/api";
 
 // Auto-purge any stale URLs from localStorage to prevent "Failed to fetch" errors
 if (typeof window !== "undefined") {
@@ -350,6 +360,34 @@ export async function getUserConversations(userId?: string): Promise<Conversatio
   return response.json();
 }
 
+export async function updateConversationTitle(conversationId: string, title: string): Promise<ConversationResponse> {
+  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to update conversation title" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteConversationSession(conversationId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to delete conversation" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+}
+
 export async function getConversationMessages(conversationId: string): Promise<MessageDetailResponse[]> {
   const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/messages`);
 
@@ -512,3 +550,211 @@ export async function deleteThoughtRecord(recordId: string): Promise<void> {
     throw new Error(errorData.detail || `Server responded with status ${response.status}`);
   }
 }
+
+export interface SessionReportSummary {
+  conversation_id: string;
+  report_id: string;
+  session_number: string;
+  session_date: string;
+  session_time: string;
+  generated_timestamp: string;
+  duration_str: string;
+  patient_name: string;
+  patient_id: string;
+  patient_email: string;
+  clinical_risk_level: string;
+  presenting_trigger: string;
+  automatic_thought: string;
+  identified_distortion: string;
+  distortion_evidence: string;
+  balanced_thought: string;
+  homework: string;
+  next_session_goal: string;
+  emotions: string[];
+  somatic_symptoms: string[];
+  self_reported_distress?: string | null;
+  total_messages: number;
+  user_messages_count: number;
+  ai_messages_count: number;
+}
+
+export async function downloadSessionReport(conversationId: string, customFilename?: string): Promise<void> {
+  const user = getCurrentUser();
+  const userParam = user?.id ? `?user_id=${encodeURIComponent(user.id)}` : "";
+  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}/report${userParam}`);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to download PDF report" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+
+  let filename = customFilename;
+  if (!filename) {
+    const disposition = response.headers.get("Content-Disposition");
+    if (disposition && disposition.includes("filename=")) {
+      const match = disposition.match(/filename=["']?([^"']+)["']?/);
+      if (match && match[1]) {
+        filename = match[1];
+      }
+    }
+  }
+  if (!filename) {
+    filename = `BetterMe_Session_Report_${conversationId.slice(0, 8)}.pdf`;
+  }
+
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(blobUrl);
+}
+
+export async function getSessionReportSummary(conversationId: string): Promise<SessionReportSummary> {
+  const user = getCurrentUser();
+  const userParam = user?.id ? `?user_id=${encodeURIComponent(user.id)}` : "";
+  const response = await fetch(`${API_BASE_URL}/conversations/${encodeURIComponent(conversationId)}/report/summary${userParam}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch report summary" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+// --- Phase 3: Cognitive Distortion Practice Center API Client ---
+
+export interface CBTExerciseSubmitPayload {
+  user_id: string;
+  distortion_category: string;
+  exercise_id: string;
+  exercise_title: string;
+  scenario: string;
+  answers: Record<string, string>;
+  is_completed?: boolean;
+}
+
+export interface CBTExerciseRecord {
+  id: string;
+  user_id: string;
+  distortion_category: string;
+  exercise_id: string;
+  exercise_title: string;
+  scenario: string;
+  answers: Record<string, string>;
+  is_completed: boolean;
+  completed_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CBTExerciseCategoryStat {
+  completed: number;
+  total: number;
+  percentage: number;
+}
+
+export interface CBTExerciseProgressSummary {
+  total_completed: number;
+  total_available: number;
+  completion_percentage: number;
+  categories_progress: Record<string, { completed: number; total: number; percentage: number }>;
+  completed_exercise_ids: string[];
+  recent_activity: CBTExerciseRecord[];
+}
+
+export async function submitCBTExercise(payload: CBTExerciseSubmitPayload): Promise<CBTExerciseRecord> {
+  const response = await fetch(`${API_BASE_URL}/cbt-exercises/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to save practice exercise" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getUserCBTExercises(userId: string, distortionCategory?: string): Promise<CBTExerciseRecord[]> {
+  const catParam = distortionCategory ? `&distortion_category=${encodeURIComponent(distortionCategory)}` : "";
+  const response = await fetch(`${API_BASE_URL}/cbt-exercises?user_id=${encodeURIComponent(userId)}${catParam}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch practice exercises" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getUserCBTExerciseProgress(userId: string): Promise<CBTExerciseProgressSummary> {
+  const response = await fetch(`${API_BASE_URL}/cbt-exercises/progress?user_id=${encodeURIComponent(userId)}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch exercise progress" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getUserCBTExerciseDetail(userId: string, exerciseId: string): Promise<CBTExerciseRecord> {
+  const response = await fetch(`${API_BASE_URL}/cbt-exercises/${encodeURIComponent(exerciseId)}?user_id=${encodeURIComponent(userId)}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to fetch exercise detail" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+// --- Instant Stress Relief Interfaces & Endpoints ---
+
+export interface StressReliefRecord {
+  id: string;
+  user_id: string;
+  activity_name: string;
+  activity_type: string;
+  duration_seconds: number;
+  is_completed: boolean;
+  notes?: string | null;
+  completed_at: string;
+  created_at: string;
+}
+
+export interface CreateStressReliefRequest {
+  user_id: string;
+  activity_name: string;
+  activity_type: string;
+  duration_seconds: number;
+  notes?: string | null;
+}
+
+export async function recordStressReliefActivity(
+  payload: CreateStressReliefRequest
+): Promise<StressReliefRecord> {
+  const response = await fetch(`${API_BASE_URL}/stress-relief/record`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to record stress relief activity" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getStressReliefHistory(
+  userId: string,
+  limit: number = 10
+): Promise<StressReliefRecord[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/stress-relief/history?user_id=${encodeURIComponent(userId)}&limit=${limit}`);
+    if (!response.ok) {
+      return [];
+    }
+    return response.json();
+  } catch {
+    return [];
+  }
+}
+

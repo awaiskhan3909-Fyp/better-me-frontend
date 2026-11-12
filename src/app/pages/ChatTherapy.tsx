@@ -1,15 +1,51 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
-import { Textarea } from "../components/ui/textarea";
-import { Badge } from "../components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "../components/ui/sheet";
-import { Brain, Send, Home, AlertCircle, Shield, TrendingUp, Sparkles, HelpCircle, CheckCircle2, Tag, Scale, ChevronDown, ChevronUp, Activity, BarChart3, RotateCcw, History, Calendar, MessageSquare, Plus } from "lucide-react";
+import {
+  Send,
+  Sparkles,
+  Search,
+  Plus,
+  MessageSquare,
+  Home,
+  ArrowLeft,
+  CheckCheck,
+  RotateCcw,
+  Scale,
+  Brain,
+  MoreVertical,
+  Smile,
+  ShieldCheck,
+  Check,
+  X,
+  Pencil,
+  Trash2,
+  Download,
+  FileText,
+  Loader2,
+  Menu
+} from "lucide-react";
+import BetterMeLogo from "../../imports/Better_me_Logo.png";
 import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
 import { toast } from "sonner";
-import logo from "../../imports/Better_me_Logo.png";
-import { analyzeUserMessage, createConversationSession, sendMessageInConversation, getUserConversations, getConversationMessages, getCurrentUser, CBTGuidance, EntityItem, ConversationMessageResponse, ConversationResponse, AnalyzeResponse, SafetyPrediction } from "../services/apiService";
+import {
+  analyzeUserMessage,
+  createConversationSession,
+  sendMessageInConversation,
+  getUserConversations,
+  getConversationMessages,
+  getCurrentUser,
+  CBTGuidance,
+  EntityItem,
+  ConversationMessageResponse,
+  ConversationResponse,
+  AnalyzeResponse,
+  SafetyPrediction,
+  downloadSessionReport,
+  updateConversationTitle,
+  deleteConversationSession
+} from "../services/apiService";
 
 interface Message {
   id: string;
@@ -19,20 +55,8 @@ interface Message {
   riskLevel?: "low" | "medium" | "high";
   timestamp: Date | string;
   cbtGuidance?: CBTGuidance;
-  entities?: EntityItem[];
-  modelAccuracy?: string;
-  modelName?: string;
-  distortionAccuracy?: string;
-  distortionConfidence?: string;
   distortionTopClass?: string;
-  distortionProbabilities?: Record<string, number>;
-  safetyAccuracy?: string;
   safetyRisk?: string;
-  safetyConfidence?: string;
-  safetyProbabilities?: Record<string, number>;
-  nerAccuracy?: string;
-  nerEntities?: EntityItem[];
-  cbtAccuracy?: string;
 }
 
 const formatMessageTime = (ts: any): string => {
@@ -49,36 +73,15 @@ const formatMessageTime = (ts: any): string => {
 };
 
 export default function ChatTherapy() {
+  const navigate = useNavigate();
+  const currentUser = getCurrentUser();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       type: "ai",
-      content: "Hello, I'm here to support you today. This is a safe, confidential space where you can share what's on your mind. How are you feeling right now?",
+      content: "Hello! I'm your Better Me therapist companion. This is a private, confidential space where you can share anything on your mind. How are you feeling today?",
       timestamp: new Date(),
-      modelAccuracy: "99.85%",
-      modelName: "Llama-3-8B-CBT-LoRA",
-      distortionAccuracy: "99.85%",
-      distortionTopClass: "None",
-      distortionConfidence: "99.9%",
-      distortionProbabilities: {
-        "All-or-Nothing Thinking": 0.0001,
-        "Catastrophizing": 0.0001,
-        "Emotional Reasoning": 0.0001,
-        "Fortune Telling": 0.0001,
-        "Mind Reading": 0.0001,
-        "Overgeneralization": 0.0001,
-      },
-      safetyAccuracy: "97.00%",
-      safetyRisk: "Safe",
-      safetyConfidence: "98.5%",
-      safetyProbabilities: {
-        "Safe": 0.985,
-        "Moderate": 0.012,
-        "High Risk": 0.003,
-      },
-      nerAccuracy: "96.50%",
-      nerEntities: [],
-      cbtAccuracy: "94.20%",
       riskLevel: "low",
     },
   ]);
@@ -86,23 +89,108 @@ export default function ChatTherapy() {
   const [isTyping, setIsTyping] = useState(false);
   const [showSafetyAlert, setShowSafetyAlert] = useState(false);
   const [showThoughtRecordModal, setShowThoughtRecordModal] = useState(false);
-  const [expandedTelemetryId, setExpandedTelemetryId] = useState<string | null>(null);
-  const [activeThoughtContext, setActiveThoughtContext] = useState<{
-    situation: string;
-    thought: string;
-    distortion: string;
-    evidenceFor?: string;
-    evidenceAgainst?: string;
-    suggestedReframe: string;
-    suggestedAction: string;
-  } | null>(null);
+  const [activeThoughtContext, setActiveThoughtContext] = useState<any>(null);
+
   const [conversationId, setConversationId] = useState<string | null>(() => {
     return localStorage.getItem("better_me_active_conversation_id") || null;
   });
   const [pastConversations, setPastConversations] = useState<ConversationResponse[]>([]);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileListOpen, setIsMobileListOpen] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [isDownloadingReport, setIsDownloadingReport] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleStartRename = (sessionId: string, currentTitle: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingSessionId(sessionId);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleSaveRename = async (sessionId: string, e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+    if (!editingTitle.trim()) {
+      toast.error("Session title cannot be empty");
+      return;
+    }
+    try {
+      setIsSavingTitle(true);
+      try {
+        await updateConversationTitle(sessionId, editingTitle.trim());
+      } catch (apiErr: any) {
+        console.warn("Backend update title notice:", apiErr);
+      }
+      setPastConversations((prev) =>
+        prev.map((s) => (s.id === sessionId ? { ...s, title: editingTitle.trim() } : s))
+      );
+      toast.success("Session renamed successfully");
+      setEditingSessionId(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to rename session");
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  const handleCancelRename = (e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    setEditingSessionId(null);
+    setEditingTitle("");
+  };
+
+  const handleDeleteSession = async (sessionId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this chat session? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      setDeletingSessionId(sessionId);
+      try {
+        await deleteConversationSession(sessionId);
+      } catch (apiErr: any) {
+        console.warn("Backend delete notice:", apiErr);
+      }
+      const remaining = pastConversations.filter((s) => s.id !== sessionId);
+      setPastConversations(remaining);
+      toast.success("Chat deleted successfully");
+
+      if (sessionId === conversationId) {
+        if (remaining.length > 0) {
+          handleSelectSession(remaining[0]);
+        } else {
+          handleStartNewSession();
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete session");
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
+  const handleDownloadReport = async (targetConvId?: string) => {
+    const cid = targetConvId || conversationId;
+    if (!cid) {
+      toast.error("No active session to generate report for.");
+      return;
+    }
+    try {
+      setIsDownloadingReport(cid);
+      toast.info("Generating professional PDF Session Report...");
+      await downloadSessionReport(cid);
+      toast.success("Session Report downloaded successfully!");
+    } catch (err: any) {
+      console.error("PDF download error:", err);
+      toast.error(err?.message || "Could not download session report.");
+    } finally {
+      setIsDownloadingReport(null);
+    }
+  };
 
   const loadPastSessions = async () => {
     try {
@@ -118,10 +206,8 @@ export default function ChatTherapy() {
   };
 
   useEffect(() => {
-    // 1. Load list of past sessions
     loadPastSessions();
 
-    // 2. Try to load cached multi-turn chat history
     const savedHistory = localStorage.getItem("better_me_chat_history");
     if (savedHistory) {
       try {
@@ -138,97 +224,63 @@ export default function ChatTherapy() {
       }
     }
 
-    // 3. Initialize a conversation session on backend if none active
     const savedConvId = localStorage.getItem("better_me_active_conversation_id");
     const user = getCurrentUser();
     if (!savedConvId) {
-      const initTitle = `Therapy Session ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      const initTitle = `Session ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
       createConversationSession(initTitle, user?.id)
         .then((res) => {
           setConversationId(res.id);
           localStorage.setItem("better_me_active_conversation_id", res.id);
           loadPastSessions();
         })
-        .catch((err) => console.warn("Could not initialize conversation session, fallback ready:", err));
+        .catch((err) => console.warn("Could not initialize session:", err));
+    } else {
+      // Verify that the stored conversation exists on the current active backend (e.g. Kaggle vs Local)
+      getConversationMessages(savedConvId)
+        .then((msgs) => {
+          if (msgs && msgs.length > 0) {
+            const mapped: Message[] = msgs.map((m) => ({
+              id: m.id,
+              type: m.sender_type === "user" ? "user" : "ai",
+              content: m.content,
+              timestamp: new Date(m.created_at),
+              riskLevel: "low",
+            }));
+            setMessages(mapped);
+          }
+        })
+        .catch((err) => {
+          console.warn("Stored conversation not found on active backend, creating new session:", err);
+          const initTitle = `Session ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+          createConversationSession(initTitle, user?.id)
+            .then((res) => {
+              setConversationId(res.id);
+              localStorage.setItem("better_me_active_conversation_id", res.id);
+              loadPastSessions();
+            })
+            .catch((e) => console.warn("Could not auto-create session:", e));
+        });
     }
   }, []);
 
-  // Persist conversation messages into localStorage so memory stays across refreshes
   useEffect(() => {
     if (messages.length > 1) {
       localStorage.setItem("better_me_chat_history", JSON.stringify(messages));
     }
   }, [messages]);
 
-  const extractIntelligentThoughtRecord = (targetAiMsg?: Message) => {
-    // 1. Identify AI message and corresponding user message
-    let aiMsg = targetAiMsg;
-    if (!aiMsg) {
-      aiMsg = [...messages].reverse().find((m: Message) => m.type === "ai" && m.id !== "1");
-      if (!aiMsg) {
-        aiMsg = [...messages].reverse().find((m: Message) => m.type === "ai");
-      }
-    }
-
-    let userMsg: Message | undefined;
-    if (aiMsg) {
-      const idx = messages.findIndex((m: Message) => m.id === aiMsg!.id);
-      userMsg = messages.slice(0, idx).reverse().find((m: Message) => m.type === "user");
-    }
-    if (!userMsg) {
-      userMsg = [...messages].reverse().find((m: Message) => m.type === "user");
-    }
-
-    const distortion =
-      aiMsg?.distortionTopClass && aiMsg.distortionTopClass !== "None"
-        ? aiMsg.distortionTopClass
-        : aiMsg?.distortions?.[0] || "Catastrophizing";
-
-    const situation = userMsg?.content
-      ? userMsg.content.length > 120
-        ? userMsg.content.slice(0, 120) + "..."
-        : userMsg.content
-      : "Stressful situation or trigger discussed in our chat";
-
-    const thought = userMsg?.content || "Automatic negative thought or self-critical belief";
-
-    const evidenceFor = userMsg?.content
-      ? `Felt acute distress and held the immediate internal belief: "${userMsg.content.slice(0, 100)}..."`
-      : "Immediate emotional reaction and perceived negative outcome.";
-
-    let evidenceAgainst = "";
-    if (aiMsg?.cbtGuidance?.reframing_question) {
-      evidenceAgainst = `Objective reality check: ${aiMsg.cbtGuidance.reframing_question} Feelings do not represent permanent or unchangeable facts.`;
-    } else if (aiMsg?.content) {
-      evidenceAgainst =
-        "Objective reality check: Past challenges were managed successfully, and feelings of stress do not prove catastrophe or failure.";
-    }
-
-    const suggestedReframe =
-      aiMsg?.cbtGuidance?.balanced_thought_guidance ||
-      (aiMsg?.content && aiMsg.content.length > 250
-        ? aiMsg.content.slice(0, 250) + "..."
-        : aiMsg?.content) ||
-      "A balanced, realistic perspective acknowledging both the challenge and my ability to work through it step by step.";
-
-    const suggestedAction =
-      aiMsg?.cbtGuidance?.small_action ||
-      "Take 3 slow deep breaths, ground yourself, and take one small practical action within your control today.";
-
-    return {
-      situation,
-      thought,
-      distortion,
-      evidenceFor,
-      evidenceAgainst,
-      suggestedReframe,
-      suggestedAction,
-    };
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
 
   const handleSelectSession = async (session: ConversationResponse) => {
     try {
-      setIsHistoryOpen(false);
+      setIsMobileListOpen(false);
       setConversationId(session.id);
       localStorage.setItem("better_me_active_conversation_id", session.id);
 
@@ -241,44 +293,18 @@ export default function ChatTherapy() {
             type: isUser ? "user" : "ai",
             content: m.content,
             timestamp: new Date(m.created_at),
-            modelName: "Llama-3-8B-CBT-LoRA",
-            distortionAccuracy: "99.85%",
-            distortionTopClass: "None",
-            distortionConfidence: "99.9%",
-            safetyAccuracy: "97.00%",
-            safetyRisk: "Safe",
-            safetyConfidence: "98.5%",
-            nerAccuracy: "96.50%",
-            nerEntities: [],
-            cbtAccuracy: "94.20%",
-            riskLevel:
-              session.current_risk_level?.toLowerCase() === "high risk" || session.current_risk_level?.toLowerCase() === "high"
-                ? "high"
-                : session.current_risk_level?.toLowerCase() === "moderate" || session.current_risk_level?.toLowerCase() === "medium"
-                ? "medium"
-                : "low",
+            riskLevel: "low",
           };
         });
         setMessages(mapped);
         localStorage.setItem("better_me_chat_history", JSON.stringify(mapped));
-        toast.success(`Loaded session: ${session.title || "Therapy Session"}`);
+        toast.success(`Loaded: ${session.title || "Therapy Session"}`);
       } else {
         const freshGreeting: Message = {
           id: "1",
           type: "ai",
-          content: "Hello, I'm here to support you today. This is a safe space to explore your thoughts and emotions. What's on your mind?",
+          content: "Hello! I'm here to support you in this session. What's on your mind today?",
           timestamp: new Date(),
-          modelAccuracy: "99.85%",
-          modelName: "Llama-3-8B-CBT-LoRA",
-          distortionAccuracy: "99.85%",
-          distortionTopClass: "None",
-          distortionConfidence: "99.9%",
-          safetyAccuracy: "97.00%",
-          safetyRisk: "Safe",
-          safetyConfidence: "98.5%",
-          nerAccuracy: "96.50%",
-          nerEntities: [],
-          cbtAccuracy: "94.20%",
           riskLevel: "low",
         };
         setMessages([freshGreeting]);
@@ -286,7 +312,7 @@ export default function ChatTherapy() {
       }
     } catch (err: any) {
       console.error("Could not load session messages:", err);
-      toast.error("Could not load messages for selected session.");
+      toast.error("Could not load selected session messages.");
     }
   };
 
@@ -300,38 +326,20 @@ export default function ChatTherapy() {
       const initialGreeting: Message = {
         id: "1",
         type: "ai",
-        content: "Hello, I'm here to support you today. This is a safe, confidential space where you can share what's on your mind. How are you feeling right now?",
+        content: "New session started! Share whatever you are feeling or experiencing right now.",
         timestamp: new Date(),
-        modelAccuracy: "99.85%",
-        modelName: "Llama-3-8B-CBT-LoRA",
-        distortionAccuracy: "99.85%",
-        distortionTopClass: "None",
-        distortionConfidence: "99.9%",
-        safetyAccuracy: "97.00%",
-        safetyRisk: "Safe",
-        safetyConfidence: "98.5%",
-        nerAccuracy: "96.50%",
-        nerEntities: [],
-        cbtAccuracy: "94.20%",
         riskLevel: "low",
       };
       setMessages([initialGreeting]);
       localStorage.setItem("better_me_chat_history", JSON.stringify([initialGreeting]));
-      toast.success("New session started! Prior sessions remain saved in History.");
       loadPastSessions();
+      setIsMobileListOpen(false);
+      toast.success("New session started");
     } catch (err: any) {
-      console.warn("Could not reset session:", err);
-      toast.error("Could not start session on backend, but started locally.");
+      console.error("Could not start new session:", err);
+      toast.error("Could not initialize new session.");
     }
   };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isTyping) return;
@@ -357,7 +365,7 @@ export default function ChatTherapy() {
           activeConvId = session.id;
           setConversationId(activeConvId);
         } catch (e) {
-          console.warn("Failed to create session, falling back:", e);
+          console.warn("Session fallback:", e);
         }
       }
 
@@ -369,752 +377,560 @@ export default function ChatTherapy() {
       };
       let distortionClass = "None";
       let cbtGuidanceData: CBTGuidance | undefined = undefined;
-      let entitiesData: EntityItem[] = [];
-      let strategy = "normal_conversation";
       let convRes: ConversationMessageResponse | null = null;
       let analyzeData: AnalyzeResponse | null = null;
 
       if (activeConvId) {
-        convRes = await sendMessageInConversation(activeConvId, userText);
+        try {
+          convRes = await sendMessageInConversation(activeConvId, userText);
+        } catch (msgErr: any) {
+          if (msgErr?.message?.includes("not found") || msgErr?.message?.includes("404")) {
+            console.warn("Session not found on backend. Recreating session on active backend...");
+            const user = getCurrentUser();
+            const freshSession = await createConversationSession("Therapy Session", user?.id);
+            activeConvId = freshSession.id;
+            setConversationId(activeConvId);
+            localStorage.setItem("better_me_active_conversation_id", activeConvId);
+            loadPastSessions();
+            convRes = await sendMessageInConversation(activeConvId, userText);
+          } else {
+            throw msgErr;
+          }
+        }
         aiContent = convRes.ai_message.content;
         safetyObj = convRes.analysis.safety;
         distortionClass = convRes.analysis.distortion.predicted_class;
         cbtGuidanceData = convRes.analysis.cbt_guidance;
-        entitiesData = convRes.analysis.entities;
-        strategy = convRes.decision?.strategy || "normal_conversation";
       } else {
         analyzeData = await analyzeUserMessage(userText);
         aiContent = analyzeData.cbt_guidance.balanced_thought_guidance;
         safetyObj = analyzeData.safety;
         distortionClass = analyzeData.distortion.predicted_class;
         cbtGuidanceData = analyzeData.cbt_guidance;
-        entitiesData = analyzeData.entities;
-        strategy = (analyzeData as any)?.decision?.strategy || (distortionClass && distortionClass !== "None" ? "cbt_support" : "normal_conversation");
       }
 
-      // Conversational vs CBT Intent Safety Guard:
-      // Greetings, identity inquiries ("kon ho ap bhai", "who are you") must NEVER trigger CBT reframing or distortions!
+      // Greetings filter
       const isGreetingOrIdentity = /^(?:hi|hello|hey|salam|assalam|sup|yo|kon\s+ho|kaun\s+ho|who\s+(?:are|r)\s+you|kya\s+ho\s+tum|ap\s+kon\s+ho|tum\s+kon\s+ho|who\s+is\s+this|bhai\s+kon\s+ho|kon\s+ho\s+ap\s+bhai)\b/i.test(userText.trim().toLowerCase());
       if (isGreetingOrIdentity) {
-        strategy = "normal_conversation";
         distortionClass = "None";
       }
 
-      // Clinical Client-Side Safety Gatekeeper:
-      // Only pop up the full-screen Crisis Alert Modal if genuine crisis / self-harm intent exists!
+      // Crisis detection
       const CRISIS_REGEX = /\b(?:suicid|kill\s+(?:my\s*self|myself)|want\s+to\s+die|wish\s+i\s+was\s+dead|end\s+my\s+life|hang\s+myself|khudkushi|marna\s+hai|marna\s+chahta|zeher|jaan\s+de)\b/i;
       const hasActualCrisisWords = CRISIS_REGEX.test(userText);
 
-      // Check for safety alert requirement
       if ((safetyObj.needs_safety_alert || safetyObj.risk_level === "High Risk") && hasActualCrisisWords) {
         setShowSafetyAlert(true);
       }
 
-
-      // Map risk level from backend ("Safe", "Moderate", "High Risk") -> ("low", "medium", "high")
-      const mappedRisk: "low" | "medium" | "high" =
-        (safetyObj.risk_level === "High Risk" && hasActualCrisisWords)
-          ? "high"
-          : (safetyObj.risk_level === "Moderate" || (safetyObj.risk_level === "High Risk" && !hasActualCrisisWords))
-          ? "medium"
-          : "low";
-
-      // Distortions list (display if a real distortion was found and not a greeting)
       const isCasualGreeting = isGreetingOrIdentity || userText.trim().length <= 3;
       const detectedDistortions =
         !isCasualGreeting && distortionClass && distortionClass !== "None" && distortionClass !== "Unknown" && distortionClass !== "Normal"
           ? [distortionClass]
           : [];
 
-      // Only pass cbtGuidance cards to UI if strategy is cbt_support
-      const cleanedGuidance =
-        strategy === "cbt_support"
-          ? cbtGuidanceData
-          : undefined;
-
-      // Extract multi-model benchmark accuracy and confidence metrics from response
-      const benchmarkStats = convRes?.analysis?.benchmark_stats || analyzeData?.benchmark_stats;
-      const safetyBenchmark = benchmarkStats?.safety_model_accuracy || "97.00%";
-      const distortionBenchmark = benchmarkStats?.distortion_model_accuracy || "99.85%";
-      const nerBenchmark = benchmarkStats?.ner_model_accuracy || "96.50%";
-      const cbtBenchmark = benchmarkStats?.cbt_model_accuracy || "94.20%";
-
-      // Real-time Cognitive Distortion class & probability calculations
-      const currentDistortion = convRes?.analysis?.distortion || analyzeData?.distortion;
-      const distortionProbs: Record<string, number> = currentDistortion?.all_probabilities || {};
-      let topDistortionClass = currentDistortion?.predicted_class || "None";
-      let topDistortionConfVal = currentDistortion?.confidence || 0;
-
-      // Do not allow raw softmax noise to override a genuine 'None' (e.g. on greetings like 'hi')
-      const isActualDistortion = !isCasualGreeting &&
-        topDistortionClass !== "None" && topDistortionClass !== "Unknown" && topDistortionClass !== "Normal";
-
-      if (!isActualDistortion) {
-        topDistortionClass = "None";
-        topDistortionConfVal = 0.999;
-      } else if (distortionProbs && Object.keys(distortionProbs).length > 0) {
-        const sortedDistortions = Object.entries(distortionProbs).sort((a, b) => b[1] - a[1]);
-        if (sortedDistortions.length > 0 && sortedDistortions[0][1] > topDistortionConfVal) {
-          topDistortionConfVal = sortedDistortions[0][1];
-        }
-      }
-      const distortionConfText = topDistortionClass === "None" ? "99.9%" : `${(topDistortionConfVal * 100).toFixed(1)}%`;
-
-      // Real-time Safety Classifier probability calculations
-      const safetyProbs: Record<string, number> = safetyObj.probabilities || {};
-      const safetyRiskVal = safetyObj.risk_level || "Safe";
-      const safetyConfVal = safetyProbs[safetyRiskVal] ?? (safetyRiskVal === "Safe" ? 0.985 : 0.88);
-      const safetyConfText = `${(safetyConfVal * 100).toFixed(1)}%`;
-      const safetyRiskText = `${safetyRiskVal} (${safetyConfText})`;
-
-      // Real-time Context Entities (Exclude casual slang vocatives like 'bhai' / 'brother')
-      const nerEntitiesList: EntityItem[] = (entitiesData || [])
-        .filter((ent) => {
-          if (ent.label === "FAMILY" && (ent.text.toLowerCase() === "brother" || ent.text.toLowerCase() === "bhai")) {
-            if (isGreetingOrIdentity || userText.length < 35) {
-              return false;
-            }
-          }
-          return true;
-        })
-        .map((ent) => ({
-          ...ent,
-          confidence: ent.confidence ?? 0.975,
-        }));
-
-      let modelDisplayName = "Llama-3-8B-CBT-LoRA";
-      if (convRes?.ai_response_log?.model_name) {
-        const rawModel = convRes.ai_response_log.model_name;
-        if (rawModel.includes("llama") || rawModel.includes("better-me") || rawModel.includes("fallback") || rawModel.includes("template")) {
-          modelDisplayName = "Llama-3-8B-CBT-LoRA";
-        } else {
-          modelDisplayName = rawModel;
-        }
-      }
-
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "ai",
-        content: aiContent,
+        content: aiContent || "I hear you. Tell me a bit more about what led up to this thought.",
         distortions: detectedDistortions,
-        riskLevel: mappedRisk,
+        riskLevel: safetyObj.risk_level === "High Risk" && hasActualCrisisWords ? "high" : "low",
         timestamp: new Date(),
-        cbtGuidance: cleanedGuidance,
-        entities: nerEntitiesList,
-        modelAccuracy: distortionBenchmark,
-        modelName: modelDisplayName,
-        distortionAccuracy: distortionBenchmark,
-        distortionConfidence: distortionConfText,
-        distortionTopClass: topDistortionClass,
-        distortionProbabilities: distortionProbs,
-        safetyAccuracy: safetyBenchmark,
-        safetyRisk: safetyRiskVal,
-        safetyConfidence: safetyConfText,
-        safetyProbabilities: safetyProbs,
-        nerAccuracy: nerBenchmark,
-        nerEntities: nerEntitiesList,
-        cbtAccuracy: cbtBenchmark,
+        cbtGuidance: cbtGuidanceData,
+        distortionTopClass: distortionClass !== "None" ? distortionClass : undefined,
+        safetyRisk: safetyObj.risk_level,
       };
 
       setMessages((prev: Message[]) => [...prev, aiMessage]);
     } catch (error: any) {
-      console.error("API Error:", error);
-      toast.error(error?.message || "Could not connect to Better Me AI backend server. Please make sure the backend is running.");
+      console.error("Chat API Error:", error);
+      toast.error(error?.message || "Could not connect to Better Me AI. Please ensure the backend is active.");
     } finally {
       setIsTyping(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  const distortionColors: Record<string, string> = {
-    Catastrophizing: "bg-red-50 text-red-700 border-red-300",
-    "Mind Reading": "bg-amber-50 text-amber-700 border-amber-300",
-    Overgeneralization: "bg-blue-50 text-blue-700 border-blue-300",
-    "All-or-Nothing Thinking": "bg-purple-50 text-purple-700 border-purple-300",
-    "Emotional Reasoning": "bg-pink-50 text-pink-700 border-pink-300",
-    "Fortune Telling": "bg-indigo-50 text-indigo-700 border-indigo-300",
-  };
-
-  const riskLevelConfig = {
-    low: { color: "bg-green-100 text-green-700 border-green-300", icon: Shield, label: "Low Risk" },
-    medium: { color: "bg-amber-100 text-amber-700 border-amber-300", icon: AlertCircle, label: "Medium Risk" },
-    high: { color: "bg-red-100 text-red-700 border-red-300", icon: AlertCircle, label: "High Risk" },
-  };
-
-  const currentSessionRisk: "low" | "medium" | "high" =
-    (messages
-      .filter((m: Message) => m.type === "ai" && m.riskLevel)
-      .slice(-1)[0]?.riskLevel as "low" | "medium" | "high") || "low";
+  const filteredSessions = pastConversations.filter((sess) =>
+    (sess.title || "Therapy Session").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b flex-shrink-0 shadow-sm">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center">
-              <img src={logo} alt="Better Me" className="h-8" />
-            </div>
-            <Badge className={riskLevelConfig[currentSessionRisk].color}>
-              {(() => {
-                const Icon = riskLevelConfig[currentSessionRisk].icon;
-                return <Icon className="w-3 h-3 mr-1" />;
-              })()}
-              {riskLevelConfig[currentSessionRisk].label}
-            </Badge>
+    <div className="h-[100dvh] w-full max-w-full overflow-hidden flex bg-[#f0f2f5] font-sans antialiased relative">
+      {/* Mobile Drawer Backdrop */}
+      {isMobileListOpen && (
+        <div
+          onClick={() => setIsMobileListOpen(false)}
+          className="md:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 transition-opacity"
+        />
+      )}
+
+      {/* Left Sidebar: Conversations List (WhatsApp Web / Instagram Style) */}
+      <aside
+        className={`w-[85vw] max-w-[340px] md:w-[350px] lg:w-[380px] bg-white border-r border-slate-200/90 flex flex-col h-full flex-shrink-0 transition-transform duration-300 ease-in-out z-40 fixed md:relative shadow-2xl md:shadow-none ${
+          isMobileListOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="h-16 px-4 bg-[#f0f2f5] border-b border-slate-200/80 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Link
+              to="/dashboard"
+              className="w-9 h-9 rounded-full bg-white text-slate-700 hover:text-primary flex items-center justify-center shadow-xs border border-slate-200/60"
+              title="Return to Dashboard"
+            >
+              <Home className="w-4 h-4" />
+            </Link>
+            <span className="font-bold text-slate-900 text-base">Chats</span>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleStartNewSession}
+              className="w-9 h-9 p-0 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+              title="New Conversation"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
+            <button
+              onClick={() => setIsMobileListOpen(false)}
+              className="md:hidden w-8 h-8 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 flex items-center justify-center transition-colors"
+              title="Close drawer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="p-3 border-b border-slate-100 bg-white">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search or start new chat"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#f0f2f5] pl-9 pr-3 py-1.5 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary/40 border-0"
+            />
+          </div>
+        </div>
+
+        {/* Sessions List */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          {loadingConversations ? (
+            <div className="text-center py-8 text-xs text-slate-400">Loading your chats...</div>
+          ) : filteredSessions.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-2">
+              <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-xs font-semibold text-slate-700">No Past Chats Found</p>
+              <p className="text-[11px] text-slate-400">Start your first conversation with Better Me</p>
+            </div>
+          ) : (
+            filteredSessions.map((sess) => {
+              const isActive = sess.id === conversationId;
+              const dateStr = new Date(sess.created_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+
+              return (
+                <div
+                  key={sess.id}
+                  onClick={() => handleSelectSession(sess)}
+                  className={`p-3.5 flex items-center gap-3 cursor-pointer transition-colors ${
+                    isActive ? "bg-[#eef2f7] border-l-4 border-primary" : "hover:bg-[#f5f6f8]"
+                  }`}
+                >
+                  <div className="w-11 h-11 rounded-full bg-white border border-slate-200/80 p-1 flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden">
+                    <img src={BetterMeLogo} alt="Better Me" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {editingSessionId === sess.id ? (
+                      <div className="flex items-center gap-1 my-0.5" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveRename(sess.id, e);
+                            if (e.key === "Escape") handleCancelRename(e);
+                          }}
+                          autoFocus
+                          className="w-full text-xs font-semibold px-1.5 py-0.5 rounded border border-blue-400 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={(e) => handleSaveRename(sess.id, e)}
+                          disabled={isSavingTitle}
+                          className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded"
+                          title="Save title"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={handleCancelRename}
+                          className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+                          title="Cancel"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between mb-0.5 group/sessTitle">
+                        <p
+                          onClick={(e) => handleStartRename(sess.id, sess.title || "Therapy Session", e)}
+                          className="font-semibold text-slate-900 text-xs truncate cursor-pointer hover:text-[#2a5fb7]"
+                          title="Click to rename"
+                        >
+                          {sess.title || "Therapy Session"}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => handleStartRename(sess.id, sess.title || "Therapy Session", e)}
+                            className="opacity-0 group-hover/sessTitle:opacity-100 hover:opacity-100 p-0.5 text-slate-400 hover:text-blue-600 rounded transition-opacity"
+                            title="Rename chat"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <span className="text-[10px] text-slate-400 flex-shrink-0">{dateStr}</span>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-slate-500 truncate">
+                      CBT dialogue & reflection
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadReport(sess.id);
+                      }}
+                      disabled={isDownloadingReport === sess.id}
+                      className="w-7 h-7 rounded-lg text-slate-400 hover:text-[#2a5fb7] hover:bg-blue-50 flex items-center justify-center transition-all"
+                      title="Download PDF Session Report"
+                    >
+                      {isDownloadingReport === sess.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteSession(sess.id, e)}
+                      disabled={deletingSessionId === sess.id}
+                      className="w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-all"
+                      title="Delete chat"
+                    >
+                      {deletingSessionId === sess.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </aside>
+
+      {/* Right Area: Minimal WhatsApp / Instagram Chat Screen */}
+      <main className="flex-1 flex flex-col h-full bg-[#efeae2]/30 relative min-w-0">
+        
+        {/* WhatsApp/Instagram Top Navbar */}
+        <header className="h-16 px-3 sm:px-6 bg-[#f0f2f5] border-b border-slate-200/90 flex items-center justify-between flex-shrink-0 z-10 shadow-2xs gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Mobile Back Button to Show Sidebar */}
+            <button
+              onClick={() => setIsMobileListOpen(!isMobileListOpen)}
+              className="md:hidden text-slate-700 hover:text-slate-950 p-1.5 -ml-1 rounded-lg hover:bg-slate-200/60 flex-shrink-0 transition-colors"
+              title="All chats"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* AI Avatar with Online Status */}
+            <div className="relative flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200/90 p-1 flex items-center justify-center shadow-xs overflow-hidden">
+                <img src={BetterMeLogo} alt="Better Me" className="w-full h-full object-contain" />
+              </div>
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border-2 border-white absolute bottom-0 right-0" />
+            </div>
+
+            <div className="min-w-0">
+              {editingSessionId === conversationId ? (
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveRename(conversationId!);
+                      if (e.key === "Escape") handleCancelRename();
+                    }}
+                    autoFocus
+                    className="text-xs font-semibold px-2 py-0.5 rounded border border-blue-400 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[130px] sm:max-w-[200px]"
+                  />
+                  <button
+                    onClick={() => handleSaveRename(conversationId!)}
+                    disabled={isSavingTitle}
+                    className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded"
+                    title="Save title"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={handleCancelRename}
+                    className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+                    title="Cancel"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 sm:gap-1.5 group/headerTitle min-w-0">
+                  <h2
+                    onClick={() => {
+                      const cur = pastConversations.find((s) => s.id === conversationId);
+                      if (conversationId) handleStartRename(conversationId, cur?.title || "Therapy Session");
+                    }}
+                    className="font-bold text-slate-900 text-xs sm:text-sm leading-snug cursor-pointer hover:text-[#2a5fb7] transition-colors truncate max-w-[110px] sm:max-w-[280px]"
+                    title="Click to rename session"
+                  >
+                    {pastConversations.find((s) => s.id === conversationId)?.title || "Better Me Therapist"}
+                  </h2>
+                  {conversationId && (
+                    <button
+                      onClick={() => {
+                        const cur = pastConversations.find((s) => s.id === conversationId);
+                        handleStartRename(conversationId, cur?.title || "Therapy Session");
+                      }}
+                      className="opacity-0 group-hover/headerTitle:opacity-100 hover:opacity-100 p-0.5 text-slate-400 hover:text-blue-600 rounded transition-opacity flex-shrink-0"
+                      title="Rename this session"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              <p className="text-[10px] sm:text-[11px] text-emerald-600 font-medium leading-none flex items-center gap-1 mt-0.5">
+                <span>online</span>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-500">CBT Companion</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Right Header Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const ctx = extractIntelligentThoughtRecord();
-                setActiveThoughtContext(ctx);
-                setShowThoughtRecordModal(true);
-              }}
-              className="text-purple-700 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:text-purple-800 text-xs font-medium"
-              title="Examine core thought in 5-Column Thought Record"
+              onClick={() => handleDownloadReport()}
+              disabled={isDownloadingReport === conversationId}
+              className="bg-white text-[#1a4f97] hover:bg-blue-50 text-xs font-semibold h-8 sm:h-8.5 px-2 sm:px-3 rounded-xl border-blue-200 shadow-2xs flex items-center gap-1"
+              title="Download Professional Psychological Session Report"
             >
-              <Scale className="w-3.5 h-3.5 mr-1.5 text-purple-600" />
-              Thought Record
+              {isDownloadingReport === conversationId ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileText className="w-3.5 h-3.5 text-[#2a5fb7]" />
+              )}
+              <span className="hidden sm:inline">Session Report</span>
+              <span className="sm:hidden text-[11px]">Report</span>
             </Button>
-
-            {/* Chat History Drawer */}
-            <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    loadPastSessions();
-                    setIsHistoryOpen(true);
-                  }}
-                  className="text-slate-700 border-slate-200 bg-white hover:bg-slate-100 text-xs font-medium"
-                  title="View previous therapy conversations"
-                >
-                  <History className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                  Past Sessions
-                  {pastConversations.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-semibold">
-                      {pastConversations.length}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[320px] sm:w-[380px] p-0 flex flex-col bg-white">
-                <SheetHeader className="p-4 border-b bg-slate-50/70">
-                  <div className="flex items-center justify-between">
-                    <SheetTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                      <History className="w-4 h-4 text-primary" />
-                      Session History
-                    </SheetTitle>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        handleStartNewSession();
-                        setIsHistoryOpen(false);
-                      }}
-                      className="bg-primary hover:bg-primary-dark text-white text-xs h-8 px-2.5 rounded-lg"
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      New
-                    </Button>
-                  </div>
-                  <SheetDescription className="text-xs text-slate-500">
-                    Switch between past sessions or review previous conversations
-                  </SheetDescription>
-                </SheetHeader>
-
-                <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                  {loadingConversations ? (
-                    <div className="text-center py-8 text-xs text-slate-400">Loading sessions...</div>
-                  ) : pastConversations.length === 0 ? (
-                    <div className="text-center py-12 px-4 space-y-2">
-                      <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
-                      <p className="text-sm font-medium text-slate-700">No Past Sessions Yet</p>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        When you chat with Better Me, your clinical sessions will automatically appear here.
-                      </p>
-                    </div>
-                  ) : (
-                    pastConversations.map((sess) => {
-                      const isActive = sess.id === conversationId;
-                      const dateStr = new Date(sess.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
-                      const risk = (sess.current_risk_level || "Safe").toLowerCase();
-                      const riskBadge =
-                        risk.includes("high") ? "bg-red-50 text-red-700 border-red-200" :
-                        risk.includes("mod") || risk.includes("med") ? "bg-amber-50 text-amber-700 border-amber-200" :
-                        "bg-green-50 text-green-700 border-green-200";
-
-                      return (
-                        <div
-                          key={sess.id}
-                          onClick={() => handleSelectSession(sess)}
-                          className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                            isActive
-                              ? "bg-primary/5 border-primary/40 shadow-sm ring-1 ring-primary/20"
-                              : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <p className={`text-sm font-medium truncate ${isActive ? "text-primary font-semibold" : "text-slate-800"}`}>
-                              {sess.title || "Therapy Session"}
-                            </p>
-                            {isActive && (
-                              <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                                Active
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-slate-400">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 text-slate-400" />
-                              {dateStr}
-                            </span>
-                            <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${riskBadge}`}>
-                              {sess.current_risk_level || "Safe"}
-                            </Badge>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
-
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleStartNewSession}
-              className="text-slate-700 border-slate-200 bg-white hover:bg-slate-100 text-xs font-medium"
-              title="Start a fresh conversation"
+              className="text-xs text-slate-600 hover:text-slate-900 rounded-xl hidden md:flex items-center gap-1 h-8 sm:h-8.5"
             >
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              <RotateCcw className="w-3.5 h-3.5" />
               New Chat
             </Button>
-            <Link to="/progress">
-              <Button variant="ghost" size="sm" className="text-slate-700">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Progress
-              </Button>
-            </Link>
+            {conversationId && (
+              <button
+                onClick={() => handleDeleteSession(conversationId)}
+                disabled={deletingSessionId === conversationId}
+                className="w-8 h-8 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
+                title="Delete this chat"
+              >
+                {deletingSessionId === conversationId ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
             <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="text-slate-700">
-                <Home className="w-4 h-4 mr-2" />
-                Dashboard
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold h-8 sm:h-8.5 px-2 sm:px-3 rounded-xl border-slate-200 shadow-2xs flex items-center"
+              >
+                <Home className="w-3.5 h-3.5 text-primary sm:mr-1" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Button>
             </Link>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto px-6 py-8 max-w-4xl">
-          <div className="space-y-6">
-            {messages.map((message: Message) => (
+        {/* Chat Messages Stream */}
+        <div className="flex-1 overflow-y-auto px-3 sm:px-8 py-4 sm:py-6 space-y-3">
+          
+          {/* Centered Date Badge */}
+          <div className="flex justify-center my-3">
+            <span className="bg-white/80 backdrop-blur-xs text-slate-500 text-[11px] font-medium px-3 py-1 rounded-full shadow-2xs border border-slate-200/50">
+              Today
+            </span>
+          </div>
+
+          {messages.map((message) => {
+            const isUser = message.type === "user";
+
+            return (
               <div
                 key={message.id}
-                className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex ${isUser ? "justify-end" : "justify-start"} animate-in fade-in-50 duration-150`}
               >
-                {message.type === "user" ? (
-                  <div className="max-w-[80%]">
-                    <div className="bg-primary text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm">
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                <div
+                  className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3 sm:px-4 sm:py-3 shadow-2xs relative ${
+                    isUser
+                      ? "bg-[#0084ff] text-white rounded-tr-xs"
+                      : "bg-white text-slate-800 rounded-tl-xs border border-slate-200/70"
+                  }`}
+                >
+                  {/* Message Content */}
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                    {message.content}
+                  </p>
+
+                  {/* Clean, Non-Intrusive Distortion Pill */}
+                  {!isUser && message.distortions && message.distortions.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-semibold text-slate-400">Noticed pattern:</span>
+                      {message.distortions.map((d) => (
+                        <span
+                          key={d}
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 px-2 py-0.5 rounded-full"
+                        >
+                          <Sparkles className="w-2.5 h-2.5 text-purple-600" />
+                          {d}
+                        </span>
+                      ))}
                     </div>
-                    <p className="text-xs text-slate-500 mt-1 text-right">
-                      {formatMessageTime(message.timestamp)}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="max-w-[85%]">
-                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-5 shadow-sm space-y-4">
-                      {/* AI Main Response / Balanced Thought */}
-                      <p className="text-slate-800 whitespace-pre-wrap text-base leading-relaxed">
-                        {message.content}
-                      </p>
+                  )}
 
-
-
-                      {/* Context Entities Section */}
-                      {message.entities && message.entities.length > 0 && (
-                        <div className="pt-2 flex items-center gap-2 flex-wrap">
-                          <Tag className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-xs text-slate-500 font-medium">Context Tags:</span>
-                          {message.entities.map((entity: EntityItem, i: number) => (
-                            <Badge key={i} variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 text-[11px]">
-                              {entity.label}: {entity.text}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Distortion Detection Section */}
-                      {message.distortions && message.distortions.length > 0 && (
-                        <div className="pt-3 border-t border-slate-100">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="w-4 h-4 text-primary" />
-                            <p className="text-sm font-medium text-slate-700">
-                              Detected Cognitive Pattern:
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {message.distortions.map((distortion: string) => (
-                              <Badge
-                                key={distortion}
-                                variant="outline"
-                                className={`${distortionColors[distortion] || "bg-slate-100 text-slate-700"} text-xs px-2.5 py-0.5 font-medium`}
-                              >
-                                {distortion}
-                              </Badge>
-                            ))}
-                          </div>
-
-                          {/* Beckian Cognitive Restructuring Button */}
-                          <div className="mt-3">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const ctx = extractIntelligentThoughtRecord(message);
-                                setActiveThoughtContext(ctx);
-                                setShowThoughtRecordModal(true);
-                              }}
-                              className="h-8 text-xs font-semibold bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 text-purple-700 hover:bg-purple-100 hover:text-purple-800 rounded-lg shadow-xs flex items-center gap-1.5"
-                            >
-                              <Scale className="w-3.5 h-3.5 text-purple-600" />
-                              Examine in 5-Column Thought Record
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Multi-Model Accuracy & Diagnostic Intelligence Bar */}
-                      <div className="mt-3.5 pt-2.5 border-t border-slate-100 space-y-2 text-xs">
-                        {/* Live Primary Model Badges */}
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {/* Real-Time Distortion BERT Badge */}
-                            <span
-                              title={`Cognitive Distortion Model (${message.distortionAccuracy || "99.85%"} benchmark). Evaluated winner: ${message.distortionTopClass || "None"}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-medium text-[11px] shadow-2xs"
-                            >
-                              <Sparkles className="w-3 h-3 text-indigo-600" />
-                              <span>
-                                Distortion: <strong className="text-indigo-900">{message.distortionTopClass && message.distortionTopClass !== "None" ? message.distortionTopClass : (message.distortions?.[0] || "None")}</strong>
-                              </span>
-                              <span className="bg-indigo-200/70 text-indigo-800 text-[10px] px-1.5 py-0.2 rounded-md font-bold">
-                                {message.distortionConfidence || "N/A"}
-                              </span>
-                            </span>
-
-                            {/* Real-Time Safety BERT Badge */}
-                            <span
-                              title={`Safety Classifier (${message.safetyAccuracy || "97.00%"} benchmark). Classified risk: ${message.safetyRisk || "Safe"}`}
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium text-[11px] shadow-2xs border ${
-                                message.safetyRisk === "High Risk"
-                                  ? "bg-rose-50 text-rose-700 border-rose-200"
-                                  : message.safetyRisk === "Moderate"
-                                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                                  : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                              }`}
-                            >
-                              <Shield className="w-3 h-3" />
-                              <span>
-                                Safety: <strong>{message.safetyRisk || "Safe"}</strong>
-                              </span>
-                              <span className="text-[10px] opacity-90 font-bold">
-                                ({message.safetyConfidence || "98.5%"})
-                              </span>
-                            </span>
-
-                            {/* Real-Time Context NER Badge */}
-                            <span
-                              title={`Contextual Emotional NER (${message.nerAccuracy || "96.50%"} benchmark)`}
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 font-medium text-[11px] shadow-2xs"
-                            >
-                              <Tag className="w-3 h-3 text-purple-600" />
-                              {message.entities && message.entities.length > 0 ? (
-                                <>
-                                  <span>
-                                    NER: <strong>{message.entities[0].label}</strong> ({message.entities[0].text})
-                                  </span>
-                                  <span className="text-[10px] text-purple-600 font-bold">
-                                    {((message.entities[0].confidence ?? 0.975) * 100).toFixed(0)}%
-                                  </span>
-                                  {message.entities.length > 1 && (
-                                    <span className="text-[9px] bg-purple-200 text-purple-800 px-1 rounded-full font-bold">
-                                      +{message.entities.length - 1}
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <span>NER: <strong>None</strong> (96.5% ready)</span>
-                              )}
-                            </span>
-
-                            {/* Generative LLaMA-3 CBT LoRA Badge */}
-                            <span
-                              title="Fine-tuned 8-Billion parameter LLaMA-3 LoRA therapeutic engine"
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium"
-                            >
-                              <Brain className="w-3 h-3 text-slate-500" />
-                              <span>{message.modelName || "Llama-3-8B-CBT-LoRA"} (<strong>{message.cbtAccuracy || "94.20%"}</strong>)</span>
-                            </span>
-                          </div>
-
-                          {/* Toggle Live Softmax Details Button */}
-                          <button
-                            type="button"
-                            onClick={() => setExpandedTelemetryId(expandedTelemetryId === message.id ? null : message.id)}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors ml-auto cursor-pointer"
-                          >
-                            <BarChart3 className="w-3 h-3 text-primary" />
-                            <span>{expandedTelemetryId === message.id ? "Hide Diagnostics" : "Live Diagnostics"}</span>
-                            {expandedTelemetryId === message.id ? (
-                              <ChevronUp className="w-3 h-3" />
-                            ) : (
-                              <ChevronDown className="w-3 h-3" />
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Interactive Real-Time Neural Telemetry Drawer */}
-                        {expandedTelemetryId === message.id && (
-                          <div className="mt-2.5 p-3.5 bg-slate-900 text-slate-100 rounded-xl border border-slate-800 shadow-md text-xs space-y-3 animate-in fade-in duration-200">
-                            {/* Panel Header */}
-                            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                              <div className="flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                                <span className="font-semibold text-slate-200 text-[11px] uppercase tracking-wider">
-                                  Real-Time AI Multi-Model Telemetry
-                                </span>
-                              </div>
-                              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
-                                Live Softmax Distributions
-                              </span>
-                            </div>
-
-                            {/* Section 1: Cognitive Distortions Real-Time Softmax (6 Classes) */}
-                            <div>
-                              <div className="flex items-center justify-between text-[11px] font-medium text-slate-300 mb-1.5">
-                                <span className="flex items-center gap-1">
-                                  <Sparkles className="w-3 h-3 text-indigo-400" />
-                                  BERT Distortion Classifier (6 Classes Softmax)
-                                </span>
-                                <span className="text-[10px] text-indigo-300">
-                                  Top: <strong className="text-white">{message.distortionTopClass || "None"}</strong> ({message.distortionConfidence || "N/A"})
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
-                                {[
-                                  "All-or-Nothing Thinking",
-                                  "Catastrophizing",
-                                  "Emotional Reasoning",
-                                  "Fortune Telling",
-                                  "Mind Reading",
-                                  "Overgeneralization",
-                                ].map((clsName) => {
-                                  const prob = message.distortionProbabilities?.[clsName] ?? 0;
-                                  const pct = (prob * 100).toFixed(1);
-                                  const isTop = (message.distortionTopClass === clsName) && (prob > 0.05 || parseFloat(pct) > 10);
-                                  return (
-                                    <div key={clsName} className="space-y-0.5">
-                                      <div className="flex justify-between items-center text-[10px]">
-                                        <span className={isTop ? "font-bold text-indigo-300" : "text-slate-400"}>
-                                          {clsName}
-                                        </span>
-                                        <span className={`font-mono text-[10px] ${isTop ? "font-bold text-indigo-200" : "text-slate-400"}`}>
-                                          {pct}%
-                                        </span>
-                                      </div>
-                                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full transition-all duration-300 ${
-                                            isTop ? "bg-gradient-to-r from-indigo-500 to-purple-400" : "bg-slate-700"
-                                          }`}
-                                          style={{ width: `${Math.max(prob * 100, 1)}%` }}
-                                        />
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Section 2: Safety Classifier Real-Time Probabilities (3 Classes) */}
-                            <div>
-                              <div className="flex items-center justify-between text-[11px] font-medium text-slate-300 mb-1.5">
-                                <span className="flex items-center gap-1">
-                                  <Shield className="w-3 h-3 text-emerald-400" />
-                                  BERT Safety Classifier (3-Tier Risk Distribution)
-                                </span>
-                                <span className="text-[10px] text-emerald-300">
-                                  Assigned: <strong className="text-white">{message.safetyRisk || "Safe"}</strong> ({message.safetyConfidence || "98.5%"})
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
-                                {[
-                                  { name: "Safe", color: "from-emerald-500 to-teal-400", textColor: "text-emerald-300" },
-                                  { name: "Moderate", color: "from-amber-500 to-yellow-400", textColor: "text-amber-300" },
-                                  { name: "High Risk", color: "from-rose-500 to-red-400", textColor: "text-rose-300" },
-                                ].map(({ name, color, textColor }) => {
-                                  const prob = message.safetyProbabilities?.[name] ?? (message.safetyRisk === name ? 0.95 : 0.02);
-                                  const pct = (prob * 100).toFixed(1);
-                                  const isSelected = message.safetyRisk === name;
-                                  return (
-                                    <div key={name} className="space-y-1">
-                                      <div className="flex justify-between items-center text-[10px]">
-                                        <span className={isSelected ? `font-bold ${textColor}` : "text-slate-400"}>
-                                          {name}
-                                        </span>
-                                        <span className={`font-mono text-[10px] ${isSelected ? `font-bold ${textColor}` : "text-slate-400"}`}>
-                                          {pct}%
-                                        </span>
-                                      </div>
-                                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full transition-all duration-300 ${
-                                            isSelected ? `bg-gradient-to-r ${color}` : "bg-slate-700"
-                                          }`}
-                                          style={{ width: `${Math.max(prob * 100, 2)}%` }}
-                                        />
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Section 3: Extracted Emotional Context Entities (NER) */}
-                            <div>
-                              <div className="flex items-center justify-between text-[11px] font-medium text-slate-300 mb-1">
-                                <span className="flex items-center gap-1">
-                                  <Tag className="w-3 h-3 text-purple-400" />
-                                  Contextual Emotional NER Entities ({message.nerAccuracy || "96.50%"} Benchmark)
-                                </span>
-                                <span className="text-[10px] text-slate-400">
-                                  {message.entities?.length || 0} entity match(es)
-                                </span>
-                              </div>
-                              {message.entities && message.entities.length > 0 ? (
-                                <div className="flex flex-wrap gap-1.5 bg-slate-950/60 p-2 rounded-lg border border-slate-800/80">
-                                  {message.entities.map((ent: EntityItem, idx: number) => (
-                                    <div
-                                      key={idx}
-                                      className="inline-flex items-center gap-1.5 bg-purple-950/70 border border-purple-800/80 px-2 py-0.5 rounded text-[10px] text-purple-200"
-                                    >
-                                      <span className="font-bold text-purple-300">{ent.label}:</span>
-                                      <span>"{ent.text}"</span>
-                                      <span className="bg-purple-900/90 text-purple-300 text-[9px] px-1 rounded font-mono">
-                                        {((ent.confidence ?? 0.975) * 100).toFixed(1)}% conf
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-[10px] text-slate-500 bg-slate-950/40 p-2 rounded border border-slate-800/60 italic">
-                                  No emotional domain entities identified in this message text.
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Benchmark Verification Footer */}
-                            <div className="pt-2 border-t border-slate-800/90 text-[10px] text-slate-400 flex items-center justify-between flex-wrap gap-1 font-mono">
-                              <span>BERT Distortion: {message.distortionAccuracy || "99.85%"}</span>
-                              <span>BERT Safety: {message.safetyAccuracy || "97.00%"}</span>
-                              <span>NER Model: {message.nerAccuracy || "96.50%"}</span>
-                              <span>LLaMA-3 LoRA: {message.cbtAccuracy || "94.20%"}</span>
-                            </div>
-                          </div>
-                        )}
+                  {/* CBT Session Closure Summary Report Download Banner */}
+                  {!isUser && (message.content.includes("Session Summary") || message.content.includes("Session Ka Khulasa") || message.content.includes("--- Session")) && (
+                    <div className="mt-3 pt-3 border-t border-blue-100 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-3 rounded-xl border border-blue-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#1a4f97] flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-[#2a5fb7] flex-shrink-0" />
+                          <span>CBT Session Report Ready</span>
+                        </p>
+                        <p className="text-[11px] text-slate-600 font-['Inter'] mt-0.5">
+                          Your verified clinical CBT synthesis, cognitive reframes, and personalized homework plan are available.
+                        </p>
                       </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleDownloadReport()}
+                        disabled={isDownloadingReport === conversationId}
+                        className="bg-[#2a5fb7] hover:bg-[#1a4f97] text-white text-xs font-semibold rounded-xl h-8 px-3 shadow-xs flex items-center gap-1.5 flex-shrink-0"
+                      >
+                        {isDownloadingReport === conversationId ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        <span>Download Session Report (PDF)</span>
+                      </Button>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {formatMessageTime(message.timestamp)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
 
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-3 shadow-sm">
-                  <div className="flex gap-1.5 items-center">
-                    <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                    <span className="text-xs text-slate-500 ml-2 font-medium">Analyzing with AI models...</span>
+                  {/* Timestamp & Read Indicator */}
+                  <div
+                    className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${
+                      isUser ? "text-white/80" : "text-slate-400"
+                    }`}
+                  >
+                    <span>{formatMessageTime(message.timestamp)}</span>
+                    {isUser && <CheckCheck className="w-3.5 h-3.5 stroke-[2.5]" />}
                   </div>
                 </div>
               </div>
-            )}
+            );
+          })}
 
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="bg-white border-t flex-shrink-0">
-        <div className="container mx-auto px-6 py-4 max-w-4xl">
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 bg-slate-50 rounded-2xl border border-slate-200 p-3 focus-within:border-primary/50 focus-within:bg-white transition-all">
-              <Textarea
-                value={inputValue}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Share what's on your mind... (Press Enter to send, Shift+Enter for new line)"
-                className="min-h-[60px] max-h-[200px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
+          {/* Typing Indicator (WhatsApp Style 3-Dots) */}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-slate-200/70 rounded-2xl rounded-tl-xs px-4 py-3 shadow-2xs flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" />
+                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]" />
+                <span className="w-2 h-2 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]" />
+                <span className="text-[11px] text-slate-400 ml-1">typing...</span>
+              </div>
             </div>
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isTyping}
-              className="bg-primary hover:bg-primary/90 h-[60px] px-6 rounded-xl shadow-md transition-all disabled:opacity-50"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
-          </div>
-          <p className="text-xs text-slate-500 mt-3 text-center">
-            This is a supportive AI tool, not a replacement for professional mental health care. In crisis, call 988.
-          </p>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
-      </div>
 
-      {/* Safety Alert Modal */}
-      <SafetyAlertModal open={showSafetyAlert} onOpenChange={setShowSafetyAlert} />
+        {/* WhatsApp / Instagram Bottom Chat Input Bar */}
+        <footer className="p-2 sm:p-3 bg-white border-t border-slate-200/80 flex items-center gap-1.5 sm:gap-2 flex-shrink-0 z-10 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="flex items-center gap-1 text-slate-400 pl-0.5 sm:pl-1">
+            <button
+              type="button"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              title="Comfortable CBT Chat"
+            >
+              <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
 
-      {/* Beck's 5-Column Thought Record Modal */}
-      <ThoughtRecordModal
-        open={showThoughtRecordModal}
-        onOpenChange={setShowThoughtRecordModal}
-        initialSituation={activeThoughtContext?.situation || ""}
-        initialThought={activeThoughtContext?.thought || ""}
-        initialDistortion={activeThoughtContext?.distortion || "Catastrophizing"}
-        initialEvidenceFor={activeThoughtContext?.evidenceFor || ""}
-        initialEvidenceAgainst={activeThoughtContext?.evidenceAgainst || ""}
-        suggestedReframe={activeThoughtContext?.suggestedReframe || ""}
-        suggestedAction={activeThoughtContext?.suggestedAction || ""}
-        conversationId={conversationId}
-        onRecordSaved={() => {
-          toast.success("Thought Record saved to your longitudinal profile!");
-        }}
-      />
+          <div className="flex-1 relative min-w-0">
+            <input
+              type="text"
+              placeholder="Message Better Me..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-[#f0f2f5] border-0 rounded-full px-3.5 sm:px-4 py-2 sm:py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          <button
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isTyping}
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
+              inputValue.trim() && !isTyping
+                ? "bg-[#0084ff] text-white hover:bg-blue-600 shadow-md shadow-blue-500/20 scale-100"
+                : "bg-slate-200 text-slate-400 cursor-not-allowed scale-95"
+            }`}
+            title="Send Message (Enter)"
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+          </button>
+        </footer>
+
+        {/* Safety Alert Modal */}
+        <SafetyAlertModal
+          open={showSafetyAlert}
+          onOpenChange={setShowSafetyAlert}
+        />
+      </main>
     </div>
   );
 }

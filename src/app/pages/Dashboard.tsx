@@ -1,29 +1,36 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
 import {
-  Brain,
+  LayoutDashboard,
   MessageCircle,
   TrendingUp,
+  BookOpen,
+  Wind,
   LogOut,
-  Calendar,
-  Clock,
-  AlertCircle,
-  Sparkles,
-  Activity,
-  Target,
-  Compass,
   ArrowRight,
-  Scale
+  Target,
+  Download,
+  Loader2,
+  Trash2,
+  Pencil,
+  Check,
+  X,
+  History,
+  Compass,
+  ChevronRight
 } from "lucide-react";
-import logo from "../../imports/Better_me_Logo.png";
+import BetterMeLogo from "../../imports/Better_me_Logo.png";
+import MobileBottomNav from "../components/MobileBottomNav";
+import { toast } from "sonner";
 import {
   getCurrentUser,
   logoutUser,
   getDashboardStats,
-  DashboardStatsResponse
+  DashboardStatsResponse,
+  downloadSessionReport,
+  updateConversationTitle,
+  deleteConversationSession
 } from "../services/apiService";
 import { getUserIntakeFromSupabase } from "../services/supabaseService";
 
@@ -33,43 +40,122 @@ export default function Dashboard() {
 
   const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "distortions" | "safe">("all");
+  const [showAllSessionsModal, setShowAllSessionsModal] = useState(false);
+
+  // Rename session inline state
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+
+  const handleStartRename = (sessionId: string, currentTitle: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingSessionId(sessionId);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleSaveRename = async (sessionId: string) => {
+    if (!editingTitle.trim()) {
+      toast.error("Session title cannot be empty");
+      return;
+    }
+    try {
+      setIsSavingTitle(true);
+      try {
+        await updateConversationTitle(sessionId, editingTitle.trim());
+      } catch (apiErr: any) {
+        console.warn("Backend update title notice:", apiErr);
+      }
+      setStats((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          recent_sessions: (prev.recent_sessions || []).map((s) =>
+            s.id === sessionId ? { ...s, title: editingTitle.trim() } : s
+          ),
+        };
+      });
+      toast.success("Session renamed successfully");
+      setEditingSessionId(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to rename session");
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  const handleCancelRename = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingSessionId(null);
+    setEditingTitle("");
+  };
+
+  const handleDeleteSession = async (sessionId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this session? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      setDeletingSessionId(sessionId);
+      try {
+        await deleteConversationSession(sessionId);
+      } catch (apiErr: any) {
+        console.warn("Backend delete notice:", apiErr);
+      }
+      setStats((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          total_sessions: Math.max(0, prev.total_sessions - 1),
+          recent_sessions: (prev.recent_sessions || []).filter((s) => s.id !== sessionId),
+        };
+      });
+      toast.success("Session deleted successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete session");
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
+  const handleDownloadReport = async (sessionId: string) => {
+    try {
+      setDownloadingReportId(sessionId);
+      toast.info("Generating session PDF report...");
+      await downloadSessionReport(sessionId);
+      toast.success("Session Report downloaded successfully!");
+    } catch (err: any) {
+      console.error("PDF download error:", err);
+      toast.error(err?.message || "Could not download session report.");
+    } finally {
+      setDownloadingReportId(null);
+    }
+  };
 
   useEffect(() => {
     async function loadStats() {
       try {
         let data = await getDashboardStats(currentUser?.id).catch(() => null);
 
-        // Load per-user assessment from Supabase
         if (currentUser) {
-          const supaIntake = await getUserIntakeFromSupabase(currentUser.id, currentUser.email);
-          if (supaIntake) {
-            if (!data) {
-              data = {
-                user_name: currentUser.full_name || currentUser.email.split("@")[0],
-                total_sessions: 0,
-                avg_duration_minutes: 0,
-                total_messages: 0,
-                current_risk_level: "Safe",
-                primary_focus: supaIntake.primary_focus || [],
-                primary_goal: supaIntake.primary_goal || "Learn to challenge and reframe negative thoughts",
-                distortions_breakdown: {},
-                recent_sessions: [],
-                emotional_trends: []
-              };
-            } else {
-              if ((!data.primary_focus || data.primary_focus.length === 0) && supaIntake.primary_focus) {
-                data.primary_focus = supaIntake.primary_focus;
-              }
-              if (!data.primary_goal && supaIntake.primary_goal) {
-                data.primary_goal = supaIntake.primary_goal;
-              }
+          const supaIntake = await getUserIntakeFromSupabase(currentUser.id, currentUser.email).catch(() => null);
+          if (supaIntake && data) {
+            if ((!data.primary_focus || data.primary_focus.length === 0) && supaIntake.primary_focus) {
+              data.primary_focus = supaIntake.primary_focus;
+            }
+            if (!data.primary_goal && supaIntake.primary_goal) {
+              data.primary_goal = supaIntake.primary_goal;
             }
           }
         }
 
-        setStats(data);
+        if (data) {
+          setStats(data);
+        }
       } catch (err) {
-        console.warn("Could not fetch remote stats, using fallback", err);
+        console.warn("Could not fetch remote stats:", err);
       } finally {
         setLoading(false);
       }
@@ -82,22 +168,15 @@ export default function Dashboard() {
     navigate("/login");
   };
 
+  const userName = stats?.user_name || currentUser?.full_name || currentUser?.email?.split("@")[0] || "Friend";
+  const firstName = userName.split(" ")[0] || "Friend";
+
   const totalSessions = stats?.total_sessions ?? 0;
-  const averageDuration = stats?.avg_duration_minutes ?? 0;
-  const currentRisk = stats?.current_risk_level ?? "Safe";
-  const userName = stats?.user_name || currentUser?.full_name || "Friend";
+  const thoughtsAnalyzed = stats?.thoughts_analyzed ?? (stats?.total_messages ?? 0);
+  const categoriesPracticed = stats?.categories_practiced ?? 0;
   const recentSessions = stats?.recent_sessions || [];
 
-  const riskLevelColors: Record<string, string> = {
-    low: "bg-green-100 text-green-700 border-green-200",
-    safe: "bg-green-100 text-green-700 border-green-200",
-    medium: "bg-amber-100 text-amber-700 border-amber-200",
-    moderate: "bg-amber-100 text-amber-700 border-amber-200",
-    high: "bg-red-100 text-red-700 border-red-200",
-    "high risk": "bg-red-100 text-red-700 border-red-200",
-  };
-
-  const distortionColors: Record<string, string> = {
+  const distortionPillColors: Record<string, string> = {
     Catastrophizing: "bg-red-50 text-red-700 border-red-200",
     "Mind Reading": "bg-purple-50 text-purple-700 border-purple-200",
     Overgeneralization: "bg-orange-50 text-orange-700 border-orange-200",
@@ -106,312 +185,527 @@ export default function Dashboard() {
     "Fortune Telling": "bg-indigo-50 text-indigo-700 border-indigo-200",
   };
 
+  const filteredSessions = recentSessions.filter((session) => {
+    if (historyFilter === "distortions") {
+      return session.distortions_detected && session.distortions_detected.length > 0;
+    }
+    if (historyFilter === "safe") {
+      return !session.distortions_detected || session.distortions_detected.length === 0;
+    }
+    return true;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <img src={logo} alt="Better Me" className="h-8" />
+    <div className="min-h-screen bg-[#e8f1fc] p-2 sm:p-5 lg:p-6 flex items-center justify-center font-sans selection:bg-[#2a5fb7]/20 pb-20 lg:pb-6">
+      {/* Unified Glassmorphic Dashboard Workspace Shell */}
+      <div className="w-full max-w-[1400px] bg-[#f4f8fe]/95 backdrop-blur-2xl rounded-2xl sm:rounded-[32px] shadow-2xl shadow-blue-900/10 border border-white/80 p-3 sm:p-6 flex flex-col lg:flex-row gap-4 sm:gap-5 overflow-hidden">
+        
+        {/* Left Slim Navigation Rail (Desktop Only) */}
+        <aside className="hidden lg:flex lg:w-16 lg:flex-col items-center justify-between py-3 bg-white/70 backdrop-blur-md rounded-[24px] border border-white shadow-2xs flex-shrink-0">
+          <Link
+            to="/dashboard"
+            className="w-11 h-11 rounded-xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center p-1 transition-transform hover:scale-105 overflow-hidden"
+            title="Better Me"
+          >
+            <img src={BetterMeLogo} alt="Better Me" className="w-full h-full object-contain" />
           </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/thought-records">
-              <Button variant="ghost" className="text-slate-700 hover:text-purple-700">
-                <Scale className="w-4 h-4 mr-2 text-purple-600" />
-                Thought Records
-              </Button>
-            </Link>
-            <Link to="/progress">
-              <Button variant="ghost" className="text-slate-700 hover:text-primary">
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Progress
-              </Button>
-            </Link>
-            <Button variant="ghost" onClick={handleLogout} className="text-slate-700 hover:text-red-600">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
 
-      <div className="container mx-auto px-6 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-slate-900 mb-1 flex items-center gap-2">
-              Welcome Back, {userName} 👋
-            </h1>
-            <p className="text-slate-600 font-['Inter']">
-              How are you feeling today? Your safe, AI-guided CBT space is ready.
-            </p>
-          </div>
+          <nav className="flex lg:flex-col items-center gap-3 my-auto">
+            <button
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#182a4d] text-white shadow-xs"
+              title="Dashboard"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+            </button>
 
-          {/* User's Intake Focus Badges */}
-          {stats?.primary_focus && stats.primary_focus.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Your Focus:</span>
-              {stats.primary_focus.map((focus) => (
-                <Badge key={focus} variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs py-1 px-2.5">
-                  {focus}
-                </Badge>
-              ))}
+            <Link
+              to="/chat"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#2a5fb7] hover:bg-blue-50 transition-all"
+              title="AI Therapy Chat"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </Link>
+
+            <Link
+              to="/progress"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#2a5fb7] hover:bg-blue-50 transition-all"
+              title="My Learning Progress"
+            >
+              <TrendingUp className="w-4 h-4" />
+            </Link>
+
+            <Link
+              to="/thought-records"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#2a5fb7] hover:bg-blue-50 transition-all"
+              title="CBT Practice Center"
+            >
+              <BookOpen className="w-4 h-4" />
+            </Link>
+
+            <Link
+              to="/stress-relief"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#2a5fb7] hover:bg-blue-50 transition-all"
+              title="Instant Stress Relief"
+            >
+              <Wind className="w-4 h-4" />
+            </Link>
+          </nav>
+
+          <button
+            onClick={handleLogout}
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </aside>
+
+        {/* Main Dashboard Content */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          
+          {/* Top Compact Header Bar */}
+          <header className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="lg:hidden w-9 h-9 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center p-1 flex-shrink-0">
+                <img src={BetterMeLogo} alt="Better Me" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <h1 className="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  Welcome Back, {firstName}
+                </h1>
+                <p className="text-xs text-slate-500 font-['Inter'] line-clamp-1">
+                  Your personal CBT support space.
+                </p>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-white to-primary/5 group">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-['Inter'] text-slate-600 mb-1">Total Sessions</p>
-                  <p className="text-3xl font-semibold text-slate-900">{totalSessions}</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-7 h-7 text-white" />
+            {/* Profile Avatar Pill */}
+            <div className="flex items-center gap-2 bg-white pl-1.5 pr-3 py-1 rounded-full shadow-2xs border border-slate-100">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#2a5fb7] to-[#b8a1ff] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                {firstName[0] || "U"}
+              </div>
+              <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
+                {userName}
+              </span>
+            </div>
+          </header>
+
+          {/* Row 1: Exactly Three Symmetrical Metric Cards (Clean, No Pill Badges) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Metric 1 */}
+            <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-100 flex flex-col justify-between hover:shadow-xs transition-shadow">
+              <div>
+                <p className="text-xs font-semibold text-slate-600">Total Therapy Sessions</p>
+                <div className="flex items-baseline gap-1.5 mt-1.5 mb-0.5">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#2a5fb7] tracking-tight">
+                    {totalSessions}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium font-['Inter']">completed</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                <div
+                  className="bg-[#2a5fb7] h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(12, totalSessions * 10))}%` }}
+                />
+              </div>
+            </div>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-white to-secondary-lighter group">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-['Inter'] text-slate-600 mb-1">Avg. Duration</p>
-                  <p className="text-3xl font-semibold text-slate-900">{averageDuration}m</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-br from-secondary to-secondary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-secondary/30 group-hover:scale-110 transition-transform">
-                  <Clock className="w-7 h-7 text-primary-dark" />
+            {/* Metric 2 */}
+            <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-100 flex flex-col justify-between hover:shadow-xs transition-shadow">
+              <div>
+                <p className="text-xs font-semibold text-slate-600">Thoughts Analyzed</p>
+                <div className="flex items-baseline gap-1.5 mt-1.5 mb-0.5">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-indigo-600 tracking-tight">
+                    {thoughtsAnalyzed}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium font-['Inter']">reflections</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                <div
+                  className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(12, thoughtsAnalyzed * 3))}%` }}
+                />
+              </div>
+            </div>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-white to-green-50 group">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-['Inter'] text-slate-600 mb-1">Current Risk</p>
-                  <p className="text-3xl font-semibold text-green-600 capitalize">
-                    {currentRisk.toLowerCase()}
-                  </p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
-                  <AlertCircle className="w-7 h-7 text-white" />
+            {/* Metric 3 */}
+            <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-100 flex flex-col justify-between hover:shadow-xs transition-shadow">
+              <div>
+                <p className="text-xs font-semibold text-slate-600">Categories Practiced</p>
+                <div className="flex items-baseline gap-1.5 mt-1.5 mb-0.5">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#8b5cf6] tracking-tight">
+                    {categoriesPracticed}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium font-['Inter']">/ 6 categories</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-white to-primary/5 group">
-            <CardContent className="pt-6 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-['Inter'] text-slate-600 mb-1">Total Reflections</p>
-                  <p className="text-3xl font-semibold text-slate-900">{stats?.total_messages ?? 0}</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-7 h-7 text-white" />
-                </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-3">
+                <div
+                  className="bg-[#8b5cf6] h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.max(10, (categoriesPracticed / 6) * 100)}%` }}
+                />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Layout */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Left 2 Cols: Start Session & Session History */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Start New Session CTA Banner */}
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-primary via-primary-dark to-secondary text-white overflow-hidden relative">
-              <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.1))]" />
-              <CardContent className="pt-8 pb-8 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-3">
-                      <Sparkles className="w-4 h-4" />
-                      <span className="text-xs font-semibold uppercase tracking-wider">CBT Cognitive Reframing</span>
-                    </div>
-                    <h3 className="text-2xl font-semibold mb-2">Ready for a therapy session?</h3>
-                    <p className="text-white/90 font-['Inter'] text-sm mb-6 max-w-md">
-                      Share your thoughts, exam worries, or feelings. Better Me will identify cognitive distortions and guide you with empathetic reframing.
-                    </p>
-                    <Link to="/chat">
-                      <Button className="bg-white text-primary hover:bg-slate-50 shadow-lg font-medium px-6 rounded-xl">
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Start New Session
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="hidden lg:block">
-                    <div className="w-28 h-28 bg-white/10 rounded-3xl flex items-center justify-center backdrop-blur-sm">
-                      <Target className="w-14 h-14 text-white" />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-              <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-secondary/30 rounded-full blur-3xl" />
-            </Card>
-
-            {/* Session History (With Empty State) */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle>Session History</CardTitle>
-                <CardDescription className="font-['Inter']">Your recorded AI therapy discussions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {recentSessions.length === 0 ? (
-                  <div className="text-center py-10 px-4 bg-slate-50/80 rounded-2xl border border-dashed border-slate-200">
-                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-primary">
-                      <Compass className="w-7 h-7" />
-                    </div>
-                    <h4 className="text-base font-semibold text-slate-800 mb-1">No sessions recorded yet</h4>
-                    <p className="text-xs text-slate-500 font-['Inter'] max-w-sm mx-auto mb-4">
-                      Start your very first session today. As you chat, your cognitive distortion trends and progress will automatically appear here.
-                    </p>
-                    <Link to="/chat">
-                      <Button size="sm" className="bg-primary hover:bg-primary-dark text-white rounded-xl">
-                        Begin First Session <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recentSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors border border-slate-100"
-                      >
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl flex items-center justify-center border border-primary/20 flex-shrink-0">
-                          <Calendar className="w-6 h-6 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-medium text-slate-900 truncate">
-                              {session.title}
-                            </p>
-                            <Badge className={riskLevelColors[(session.risk_level || "low").toLowerCase()] || "bg-slate-100 text-slate-700"}>
-                              {session.risk_level || "Low"} risk
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-slate-500 font-['Inter'] mb-2">
-                            {session.date} • {session.duration}m duration • {session.message_count} messages
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {session.distortions_detected.length > 0 ? (
-                              session.distortions_detected.map((d) => (
-                                <Badge
-                                  key={d}
-                                  variant="outline"
-                                  className={`text-xs ${distortionColors[d] || "text-slate-600"}`}
-                                >
-                                  {d}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-xs text-slate-400 italic">No cognitive distortions flagged</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            </div>
           </div>
 
-          {/* Right Col: Emotional Insights & CBT Coaching */}
-          <div className="space-y-6">
-            {/* Beck's Thought Record Studio Card */}
-            <Card className="border border-purple-200/70 shadow-lg bg-gradient-to-br from-purple-50/70 via-indigo-50/40 to-white">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-md">
-                    <Scale className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 text-sm mb-1">
-                      Beck's Thought Records Studio
-                    </h4>
-                    <p className="text-xs text-slate-600 leading-relaxed mb-3">
-                      Put automatic negative thoughts on trial using the 5-column cognitive restructuring method.
-                    </p>
-                    <Link to="/thought-records">
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs h-8">
-                        Open Thought Studio
-                        <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          {/* Row 2: Symmetrical 2-Column Balanced Workspace (Left 7 Cols, Right 5 Cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+            
+            {/* LEFT 7 COLUMNS: Therapy Session Banner & Compact Session History */}
+            <div className="lg:col-span-7 flex flex-col gap-3 sm:gap-4">
+              
+              {/* Compact Therapy Session Banner */}
+              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#182a4d] via-[#1a4f97] to-[#2a5fb7] text-white p-4 sm:p-5 shadow-sm">
+                <div className="relative z-10 space-y-2">
+                  <h2 className="text-base sm:text-lg font-bold tracking-tight">
+                    Ready for a Therapy Session?
+                  </h2>
+                  <p className="text-white/85 text-xs font-['Inter'] leading-relaxed max-w-xl">
+                    Share what you are feeling. Better Me guides you with empathetic Socratic reframing.
+                  </p>
+                  <div className="pt-1 flex items-center gap-2.5">
+                    <Link to="/chat">
+                      <Button className="bg-white text-[#182a4d] hover:bg-slate-100 font-bold px-4 rounded-xl text-xs h-8.5 shadow-xs flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-[#2a5fb7]" />
+                        <span>Start Session</span>
                       </Button>
                     </Link>
+                    <button
+                      onClick={() => setShowAllSessionsModal(true)}
+                      className="h-8.5 px-3 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <History className="w-3.5 h-3.5 text-sky-200" />
+                      <span>History ({recentSessions.length})</span>
+                    </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-xl pointer-events-none" />
+              </div>
 
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle>Therapy Insights</CardTitle>
-                <CardDescription className="font-['Inter']">Personalized clinical observations</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="w-5 h-5 text-white" />
+              {/* Compact Session History */}
+              <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-100 flex-1 flex flex-col justify-between">
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 className="text-xs font-bold text-slate-900">Recent Sessions</h3>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={historyFilter}
+                        onChange={(e) => setHistoryFilter(e.target.value as any)}
+                        className="text-[11px] font-semibold bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
+                      >
+                        <option value="all">All</option>
+                        <option value="distortions">With Distortions</option>
+                        <option value="safe">Safe</option>
+                      </select>
+                      <button
+                        onClick={() => setShowAllSessionsModal(true)}
+                        className="text-[11px] font-bold text-[#2a5fb7] hover:underline"
+                      >
+                        View All
+                      </button>
                     </div>
+                  </div>
+
+                  {filteredSessions.length === 0 ? (
+                    <div className="text-center py-6 px-3 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                      <Compass className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                      <p className="text-xs text-slate-500 font-['Inter']">No sessions found in this filter.</p>
+                      <Link to="/chat" className="mt-2 inline-block">
+                        <Button size="sm" className="bg-[#2a5fb7] hover:bg-[#1a4f97] text-white text-[11px] h-7 px-3 rounded-lg">
+                          Start First Session
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredSessions.slice(0, 3).map((session) => (
+                        <div
+                          key={session.id}
+                          className="p-2.5 rounded-xl bg-[#f8fbff] hover:bg-[#edf5ff] transition-all border border-slate-100 space-y-1.5 group"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            {editingSessionId === session.id ? (
+                              <div className="flex items-center gap-1 flex-1" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="text"
+                                  value={editingTitle}
+                                  onChange={(e) => setEditingTitle(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveRename(session.id);
+                                    if (e.key === "Escape") handleCancelRename();
+                                  }}
+                                  autoFocus
+                                  className="w-full text-xs font-semibold px-2 py-0.5 rounded border border-blue-400 bg-white focus:outline-none"
+                                />
+                                <button onClick={() => handleSaveRename(session.id)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded">
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={handleCancelRename} className="p-1 text-slate-400 hover:bg-slate-100 rounded">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  onClick={(e) => handleStartRename(session.id, session.title || "CBT Therapy Session", e)}
+                                  className="font-bold text-slate-900 text-xs truncate cursor-pointer hover:text-[#2a5fb7]"
+                                >
+                                  {session.title || "CBT Therapy Session"}
+                                </span>
+                                <button
+                                  onClick={(e) => handleStartRename(session.id, session.title || "CBT Therapy Session", e)}
+                                  className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-blue-600 rounded"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+
+                            <span className="text-[10px] text-slate-400 font-['Inter'] flex-shrink-0">
+                              {session.date}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] pt-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-slate-400">{session.duration}m</span>
+                              {session.distortions_detected && session.distortions_detected.length > 0 ? (
+                                session.distortions_detected.slice(0, 2).map((d) => (
+                                  <span key={d} className={`text-[9px] font-semibold px-1.5 py-0.2 rounded border ${distortionPillColors[d] || "bg-slate-100 text-slate-600 border-slate-200"}`}>
+                                    {d}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-slate-400 italic text-[10px]">No distortions</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleDownloadReport(session.id)}
+                                disabled={downloadingReportId === session.id}
+                                className="text-[10px] font-semibold text-slate-500 hover:text-[#2a5fb7] flex items-center gap-0.5"
+                                title="Download PDF"
+                              >
+                                {downloadingReportId === session.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                                ) : (
+                                  <Download className="w-3 h-3" />
+                                )}
+                                <span>PDF</span>
+                              </button>
+
+                              <button
+                                onClick={(e) => handleDeleteSession(session.id, e)}
+                                disabled={deletingSessionId === session.id}
+                                className="text-slate-300 hover:text-red-600"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+
+                              <Link to="/chat" className="text-[10px] font-bold text-[#2a5fb7] hover:underline flex items-center">
+                                Open <ChevronRight className="w-3 h-3" />
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT 5 COLUMNS: Quick Actions (Stacked) & My Therapy Overview */}
+            <div className="lg:col-span-5 flex flex-col gap-3 sm:gap-4">
+              
+              {/* Quick Actions (2 Symmetrical Cards in 1 Row) */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Practice Center */}
+                <Link
+                  to="/thought-records"
+                  className="bg-white rounded-2xl p-3.5 shadow-2xs border border-slate-100 hover:shadow-xs hover:border-blue-200 transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-1.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#2a5fb7] flex items-center justify-center font-bold">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900 group-hover:text-[#2a5fb7] transition-colors">
+                      CBT Practice
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-['Inter'] line-clamp-2 leading-relaxed">
+                      24 exercises to challenge distorted thoughts.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-[#2a5fb7] flex items-center gap-0.5 pt-2">
+                    Open <ArrowRight className="w-3 h-3" />
+                  </span>
+                </Link>
+
+                {/* Instant Stress Relief */}
+                <Link
+                  to="/stress-relief"
+                  className="bg-white rounded-2xl p-3.5 shadow-2xs border border-slate-100 hover:shadow-xs hover:border-sky-200 transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-1.5">
+                    <div className="w-8 h-8 rounded-xl bg-sky-50 text-[#0284c7] flex items-center justify-center font-bold">
+                      <Wind className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900 group-hover:text-[#0284c7] transition-colors">
+                      Stress Relief
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-['Inter'] line-clamp-2 leading-relaxed">
+                      4-7-8 breathing and sensory grounding.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-[#0284c7] flex items-center gap-0.5 pt-2">
+                    Open <ArrowRight className="w-3 h-3" />
+                  </span>
+                </Link>
+              </div>
+
+              {/* My Therapy Overview (Compact) */}
+              <div className="bg-white rounded-2xl p-4 shadow-2xs border border-slate-100 space-y-3 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 className="text-xs font-bold text-slate-900">My Therapy Overview</h3>
+                    {stats?.therapy_overview?.latest_session_date && (
+                      <span className="text-[10px] text-slate-400 font-['Inter']">
+                        {stats.therapy_overview.latest_session_date}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2.5 pt-2">
+                    {/* Recent Distortions */}
                     <div>
-                      <p className="font-semibold text-green-900 text-sm mb-0.5">Primary Target</p>
-                      <p className="text-xs font-['Inter'] text-green-800 leading-relaxed">
-                        {stats?.primary_goal || "Learn to challenge and reframe negative thoughts"}
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Recent Patterns:
+                      </span>
+                      {stats?.therapy_overview?.recent_distortions && stats.therapy_overview.recent_distortions.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {stats.therapy_overview.recent_distortions.map((d) => (
+                            <span key={d} className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${distortionPillColors[d] || "bg-blue-50 text-[#2a5fb7] border-blue-200"}`}>
+                              {d}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic font-['Inter']">No distortions identified yet.</p>
+                      )}
+                    </div>
+
+                    {/* Latest Reflection Quote */}
+                    {stats?.therapy_overview?.latest_reflection && (
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                          Latest Reflection:
+                        </span>
+                        <p className="text-xs text-slate-700 italic font-['Inter'] line-clamp-2">
+                          "{stats.therapy_overview.latest_reflection}"
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Recommendation */}
+                    <div className="p-2.5 rounded-xl bg-blue-50/50 border border-blue-100/70">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-[#2a5fb7] uppercase tracking-wider mb-0.5">
+                        <Target className="w-3 h-3" />
+                        <span>Recommended Next Step:</span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-['Inter'] leading-relaxed">
+                        {stats?.therapy_overview?.recommended_next_step ||
+                          "Explore the CBT Practice Center to practice identifying automatic thoughts."}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-primary-dark text-sm mb-0.5">CBT Distortion Detection</p>
-                      <p className="text-xs font-['Inter'] text-slate-700 leading-relaxed">
-                        Fine-tuned BERT AI screens for 6 cognitive distortions: Catastrophizing, Mind Reading, Overgeneralization, Fortune Telling, Emotional Reasoning, and All-or-Nothing thinking.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gradient-to-br from-secondary-lighter to-secondary/20 rounded-xl border border-secondary/30">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-secondary to-secondary-dark rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Activity className="w-5 h-5 text-primary-dark" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-secondary-dark text-sm mb-0.5">Session Frequency</p>
-                      <p className="text-xs font-['Inter'] text-slate-700 leading-relaxed">
-                        {totalSessions > 0
-                          ? `You've completed ${totalSessions} sessions so far. Consistency builds neural resilience.`
-                          : "Regular 10-minute CBT check-ins significantly reduce chronic worry and rumination."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Link to="/progress" className="block pt-2">
-                  <Button variant="outline" className="w-full border-2 border-primary text-primary hover:bg-primary/5 rounded-xl">
-                    View Progress Analytics
+                <Link to="/thought-records" className="pt-1 block">
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs font-semibold h-8 rounded-xl border-slate-200 text-[#2a5fb7] hover:bg-blue-50/50"
+                  >
+                    Go to CBT Practice Center
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
+              </div>
+
+            </div>
+
           </div>
+
         </div>
       </div>
+
+      {/* MODAL: Full Sessions History */}
+      {showAllSessionsModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in-50">
+          <div className="bg-white rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 bg-[#f8fbff] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">All Therapy Sessions</h3>
+                <p className="text-xs text-slate-400 font-['Inter']">
+                  Complete history of your {recentSessions.length} sessions.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAllSessionsModal(false)}
+                className="w-7 h-7 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto space-y-2.5 flex-1 divide-y divide-slate-100">
+              {recentSessions.map((session) => (
+                <div key={session.id} className="pt-2.5 first:pt-0 flex items-center justify-between gap-2">
+                  <div className="space-y-0.5 min-w-0">
+                    <h4 className="text-xs font-bold text-slate-900 truncate">
+                      {session.title || "Therapy Session"}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-['Inter']">
+                      {session.date} • {session.duration}m duration • {session.message_count} reflections
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleDownloadReport(session.id)}
+                      disabled={downloadingReportId === session.id}
+                      className="text-[10px] font-semibold text-slate-600 hover:text-[#2a5fb7] px-2 py-1 rounded border border-slate-200"
+                    >
+                      PDF
+                    </button>
+                    <Link to="/chat">
+                      <Button size="sm" className="bg-[#2a5fb7] hover:bg-[#1a4f97] text-white text-[10px] rounded-lg h-7 px-2.5">
+                        Open Chat
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 border-t border-slate-100 bg-[#f8fbff] flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllSessionsModal(false)}
+                className="text-xs font-semibold rounded-xl px-4 h-8"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Bottom Navigation Dock */}
+      <MobileBottomNav active="dashboard" />
     </div>
   );
 }

@@ -93,7 +93,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/30 to-slate-100 flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/30 to-slate-100 flex items-center justify-center p-4 sm:p-6 font-sans">
       {/* Ambient Floating Gradient Orbs */}
       <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-br from-primary/20 via-sky-300/20 to-transparent blur-3xl pointer-events-none animate-blob-1" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-gradient-to-tl from-secondary/20 via-indigo-200/20 to-transparent blur-3xl pointer-events-none animate-blob-2" />
@@ -101,7 +101,7 @@ export default function Register() {
 
       <div className="w-full max-w-md relative z-10">
         {/* Animated Floating Logo */}
-        <AuthLogo subtitle="Begin Your Therapy Journey" />
+        <AuthLogo subtitle="AI Cognitive Therapy" />
 
         {/* Glassmorphic Register Card */}
         <Card className="border border-white/80 shadow-2xl shadow-slate-300/50 bg-white/90 backdrop-blur-xl rounded-3xl overflow-hidden transition-all duration-300">
@@ -110,10 +110,10 @@ export default function Register() {
 
           <CardHeader className="space-y-1.5 text-center pt-7 pb-2">
             <CardTitle className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-              Create Account
+              Create Your Account
             </CardTitle>
             <CardDescription className="text-slate-500 font-['Inter'] text-sm">
-              Start your personalized journey to better mental wellbeing
+              Start your journey to cognitive reframing today
             </CardDescription>
           </CardHeader>
 
@@ -126,7 +126,7 @@ export default function Register() {
                   <Input
                     id="name"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="Jane Doe"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-10 rounded-xl h-11 border-slate-200 bg-white/70 focus:bg-white transition-all text-sm"
@@ -158,7 +158,7 @@ export default function Register() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="At least 6 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10 rounded-xl h-11 border-slate-200 bg-white/70 focus:bg-white transition-all text-sm"
@@ -173,30 +173,18 @@ export default function Register() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Must be at least 6 characters
-                </p>
               </div>
 
-              <div className="flex items-start gap-2 pt-1">
+              <div className="flex items-start gap-2.5 pt-1">
                 <Checkbox
                   id="terms"
                   checked={agreeToTerms}
                   onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                  className="mt-0.5"
                 />
-                <label
-                  htmlFor="terms"
-                  className="text-xs text-slate-600 leading-tight cursor-pointer select-none"
-                >
-                  I agree to the{" "}
-                  <a href="#" className="text-primary hover:underline font-medium">
-                    Terms of Service
-                  </a>{" "}
-                  and{" "}
-                  <a href="#" className="text-primary hover:underline font-medium">
-                    Privacy Policy
-                  </a>
-                </label>
+                <Label htmlFor="terms" className="text-xs text-slate-600 leading-snug cursor-pointer font-normal">
+                  I agree to the Terms of Service and understand that Better Me is an AI-guided self-reflection tool, not a psychiatric replacement.
+                </Label>
               </div>
 
               <Button
@@ -214,19 +202,6 @@ export default function Register() {
                 <Link to="/login" className="text-primary hover:text-primary-dark font-semibold hover:underline">
                   Sign in
                 </Link>
-              </p>
-            </div>
-
-            {/* Academic FYP Attribution Capsule */}
-            <div className="mt-6 pt-4 border-t border-slate-100 text-center space-y-1 bg-slate-50/70 rounded-2xl p-3 border border-slate-100">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                🎓 BS Final Year Project (FYP)
-              </p>
-              <p className="text-xs text-slate-700 font-medium">
-                <strong>Team:</strong> Awais Khan • Saad Abdullah • Ajiya Asif
-              </p>
-              <p className="text-[11px] text-slate-500">
-                <strong>Supervisor:</strong> Mam Farnaz Akbar
               </p>
             </div>
           </CardContent>

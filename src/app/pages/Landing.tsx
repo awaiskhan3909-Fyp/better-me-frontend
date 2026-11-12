@@ -1,360 +1,359 @@
+import React, { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
-import { Brain, Shield, TrendingUp, MessageCircle, Clock, Heart, Sparkles, Activity, Target, CheckCircle, ArrowRight, Zap, GraduationCap, Users, Award, BookOpen } from "lucide-react";
+import {
+  Brain,
+  Shield,
+  TrendingUp,
+  Clock,
+  Heart,
+  Sparkles,
+  CheckCircle,
+  ArrowRight,
+  Scale,
+  Wind,
+  AlertTriangle,
+  Eye,
+  Split,
+  BookOpen,
+  Layers,
+  Activity
+} from "lucide-react";
 import logo from "../../imports/Better_me_Logo.png";
+import heroWellness3D from "../../imports/hero_wellness_3d.jpg";
+
+const HERO_EXAMPLES = [
+  {
+    id: "work",
+    label: "Work & Exams",
+    distortion: "Catastrophizing",
+    icon: AlertTriangle,
+    color: "#e11d48",
+    bgBadge: "bg-red-50 text-red-700 border-red-200",
+    thought: "I made one mistake in my presentation, now my entire career is ruined.",
+    reframe: "One error does not define my ability. Making human mistakes is normal and an opportunity to improve."
+  },
+  {
+    id: "social",
+    label: "Social Anxiety",
+    distortion: "Mind Reading",
+    icon: Eye,
+    color: "#8b5cf6",
+    bgBadge: "bg-purple-50 text-purple-700 border-purple-200",
+    thought: "They looked away while I was talking; they definitely think I am boring.",
+    reframe: "I cannot read minds. A momentary distraction doesn't mean they dislike me or find me boring."
+  },
+  {
+    id: "perfection",
+    label: "Perfectionism",
+    distortion: "All-or-Nothing",
+    icon: Split,
+    color: "#2563eb",
+    bgBadge: "bg-blue-50 text-blue-700 border-blue-200",
+    thought: "If this project isn't 100% flawless, it's a complete and total failure.",
+    reframe: "High-impact work is built through iteration. Delivering solid progress is already a meaningful success."
+  }
+];
 
 export default function Landing() {
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Top Academic FYP Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white text-xs py-2 px-4 border-b border-indigo-900/50">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="bg-primary/20 text-blue-200 border border-primary/30 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              🎓 Final Year Project (FYP)
-            </span>
-            <span className="text-slate-300 hidden sm:inline">
-              Better Me: AI-Based Cognitive Distortion Detection and CBT Support System
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-slate-300 text-[11px]">
-            <span>
-              Supervisor: <strong className="text-white">Mam Farnaz Akbar</strong>
-            </span>
-            <span className="text-slate-500">•</span>
-            <span>
-              Team: <strong className="text-white">Awais Khan, Saad Abdullah, Ajiya Asif</strong>
-            </span>
-          </div>
-        </div>
-      </div>
+  const [selectedExampleIndex, setSelectedExampleIndex] = useState(0);
+  const currentExample = HERO_EXAMPLES[selectedExampleIndex];
+  const DistortionIcon = currentExample.icon;
 
-      {/* Header */}
-      <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Better Me" className="h-10" />
-          </div>
-          <div className="flex items-center gap-4">
+  return (
+    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#2a5fb7]/10 selection:text-[#2a5fb7]">
+      {/* Navigation Header */}
+      <header className="border-b border-slate-100 bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-2xs">
+        <div className="container mx-auto px-4 sm:px-6 h-18 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src={logo} alt="Better Me" className="h-8 sm:h-9 w-auto object-contain" />
+          </Link>
+          <div className="flex items-center gap-2.5 sm:gap-4">
             <Link to="/login">
-              <Button variant="ghost" className="text-slate-700">Sign In</Button>
+              <Button variant="ghost" size="sm" className="text-slate-700 hover:text-slate-900 text-xs sm:text-sm font-medium">
+                Sign In
+              </Button>
             </Link>
             <Link to="/register">
-              <Button className="bg-primary hover:bg-primary-dark shadow-lg shadow-primary/30">
-                Get Started Free
+              <Button size="sm" className="bg-[#2a5fb7] hover:bg-[#1a4f97] text-white text-xs sm:text-sm font-medium px-4 sm:px-5 rounded-xl shadow-xs">
+                Get Started
               </Button>
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-secondary-lighter to-white">
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
-        <div className="container mx-auto px-6 py-20 lg:py-28">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 bg-secondary-lighter border border-secondary/30 rounded-full px-4 py-2">
-                <Sparkles className="w-4 h-4 text-secondary-dark" />
-                <span className="text-sm font-medium text-secondary-dark">AI-Powered CBT Therapy</span>
-              </div>
+      {/* Hero Section with Beautiful Ambient Background */}
+      <section className="relative overflow-hidden bg-[#f6faff] py-14 sm:py-20 lg:py-24">
+        
+        {/* Subtle Tech-Wellness Dot Grid Background Pattern */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.35]"
+          style={{
+            backgroundImage: "radial-gradient(#2a5fb7 0.8px, transparent 0.8px), radial-gradient(#8b5cf6 0.8px, transparent 0.8px)",
+            backgroundSize: "28px 28px",
+            backgroundPosition: "0 0, 14px 14px",
+            maskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
+            WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)"
+          }}
+        />
 
-              <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight">
+        {/* Ambient Glowing Light Orbs */}
+        <div className="absolute top-10 left-1/4 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-blue-400/20 via-sky-300/15 to-transparent rounded-full blur-[110px] pointer-events-none" />
+        <div className="absolute top-24 right-10 w-[550px] h-[550px] bg-gradient-to-br from-[#b8a1ff]/25 via-indigo-300/15 to-transparent rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="container relative z-10 mx-auto px-4 sm:px-6 max-w-6xl">
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            
+            {/* Left Content Column */}
+            <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-center lg:text-left">
+              <p className="text-xs font-bold tracking-wider text-[#2a5fb7] uppercase font-['Inter']">
+                Cognitive Behavioral Therapy & Distortion Reframing
+              </p>
+
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.12]">
                 Transform Your
-                <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-[#2a5fb7] via-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
                   Thinking Patterns
                 </span>
               </h1>
 
-              <p className="text-xl text-slate-600 leading-relaxed">
-                Break free from negative thought cycles with intelligent cognitive behavioral therapy.
-                Detect distortions, challenge beliefs, and build mental resilience—all at your own pace.
+              <p className="text-sm sm:text-base lg:text-lg text-slate-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-['Inter']">
+                Break free from automatic negative thought loops. Better Me helps you detect cognitive distortions, examine worries through Socratic reframing, and build lasting emotional resilience.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/register" className="flex-1 sm:flex-initial">
-                  <Button size="lg" className="w-full bg-primary hover:bg-primary-dark shadow-xl shadow-primary/30 group">
-                    Start Your Journey
+              {/* Primary Call to Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-1">
+                <Link to="/register" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto bg-[#2a5fb7] hover:bg-[#1a4f97] text-white text-xs sm:text-sm font-bold h-12 px-7 rounded-xl shadow-lg shadow-blue-500/20 group">
+                    Get Started Free
                     <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-                <Link to="/login" className="flex-1 sm:flex-initial">
-                  <Button size="lg" variant="outline" className="w-full border-2 border-primary text-primary hover:bg-primary/5">
-                    Learn More
+                <Link to="/thought-records" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-slate-300 text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold h-12 px-6 rounded-xl">
+                    <BookOpen className="w-4 h-4 mr-1.5 text-[#2a5fb7]" />
+                    Explore CBT Practice
                   </Button>
                 </Link>
               </div>
 
-              <div className="flex items-center gap-8 pt-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-slate-600">Free to start</span>
+              {/* Trust Indicators */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-5 sm:gap-6 pt-2 text-xs text-slate-500 font-['Inter']">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Free to use</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-slate-600">No credit card</span>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>100% Confidential</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-slate-600">100% Private</span>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Evidence-Based CBT</span>
                 </div>
               </div>
             </div>
 
-            {/* Right Image */}
-            <div className="relative lg:block hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-3xl blur-3xl" />
-              <img
-                src="https://images.unsplash.com/photo-1674027215016-0a4abfdbf1cc?w=800&q=80"
-                alt="Cognitive Therapy Illustration"
-                className="relative rounded-3xl shadow-2xl w-full h-auto"
-              />
-              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
-                    <Brain className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-slate-900">6</p>
-                    <p className="text-sm text-slate-600">Distortions Detected</p>
-                  </div>
+            {/* Right Showcase: 3D Wellness Visual & Interactive Reframe Showcase */}
+            <div className="lg:col-span-6 relative flex justify-center">
+              
+              {/* Outer Glow Wrapper */}
+              <div className="relative w-full max-w-md bg-white/90 backdrop-blur-xl rounded-[32px] border border-white shadow-2xl shadow-blue-900/15 overflow-hidden flex flex-col">
+                
+                {/* 3D Wellness Hero Artwork Header */}
+                <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-gradient-to-b from-[#e8f1fc] to-white flex items-center justify-center">
+                  <img
+                    src={heroWellness3D}
+                    alt="CBT Cognitive Wellness & Reframing"
+                    className="w-full h-full object-cover object-center transform hover:scale-105 transition-transform duration-700"
+                  />
+                  
+                  {/* Subtle Gradient Overlay to fade into card body */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/20 pointer-events-none" />
                 </div>
+
+                {/* Interactive Card Body */}
+                <div className="p-5 sm:p-6 space-y-3.5 -mt-2 relative z-10 bg-white">
+                  
+                  {/* 3 Clickable Scenario Switcher Pills */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span>Click scenario to test:</span>
+                      <span className="text-[#2a5fb7] font-semibold lowercase">interactive preview</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl">
+                      {HERO_EXAMPLES.map((ex, idx) => {
+                        const isSelected = selectedExampleIndex === idx;
+                        return (
+                          <button
+                            key={ex.id}
+                            onClick={() => setSelectedExampleIndex(idx)}
+                            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
+                              isSelected
+                                ? "bg-white text-[#2a5fb7] shadow-xs font-bold"
+                                : "text-slate-500 hover:text-slate-800"
+                            }`}
+                          >
+                            {ex.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Thought & Reframe Step Display */}
+                  <div className="space-y-2.5 pt-1">
+                    
+                    {/* Automatic Negative Thought */}
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/70 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Negative Automatic Thought:
+                      </span>
+                      <p className="text-xs sm:text-sm font-medium text-slate-800 italic font-['Inter'] leading-relaxed">
+                        "{currentExample.thought}"
+                      </p>
+                    </div>
+
+                    {/* Detected Distortion Badge */}
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-1.5">
+                        <DistortionIcon className="w-3.5 h-3.5" style={{ color: currentExample.color }} />
+                        <span className="text-xs font-bold text-slate-700">Distortion Detected:</span>
+                      </div>
+                      <span className="text-xs font-bold" style={{ color: currentExample.color }}>
+                        {currentExample.distortion}
+                      </span>
+                    </div>
+
+                    {/* Balanced Socratic Perspective */}
+                    <div className="bg-gradient-to-br from-emerald-50/90 to-teal-50/70 p-3 rounded-xl border border-emerald-200/80 space-y-0.5">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                        <Scale className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Balanced Perspective:</span>
+                      </div>
+                      <p className="text-xs text-emerald-950 font-semibold font-['Inter'] leading-relaxed">
+                        "{currentExample.reframe}"
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* Bottom Try Link */}
+                  <div className="pt-2 text-center border-t border-slate-100">
+                    <Link
+                      to="/register"
+                      className="text-xs font-bold text-[#2a5fb7] hover:text-[#1a4f97] inline-flex items-center gap-1 transition-colors"
+                    >
+                      <span>Try Socratic Reframing With Your Own Thoughts</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+
+                </div>
+
               </div>
             </div>
+
           </div>
         </div>
       </section>
 
-      {/* FYP Project Overview & Academic Team Section */}
-      <section className="py-20 bg-gradient-to-b from-white via-indigo-50/30 to-slate-50 border-y border-slate-200/80">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-indigo-100/80 text-indigo-900 border border-indigo-200/60 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider mb-3">
-              <GraduationCap className="w-4 h-4 text-indigo-700" />
-              Final Year Project (FYP) Overview
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
-              AI-Based Cognitive Distortion Detection & CBT Support System
+      {/* Features Section */}
+      <section className="py-16 sm:py-24 bg-slate-50/60 border-t border-slate-100">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16 space-y-3">
+            <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+              Evidence-Based Tools for Mental Resilience
             </h2>
-            <p className="text-slate-600 text-sm md:text-base max-w-2xl mx-auto mt-2 leading-relaxed">
-              Developed as an undergraduate capstone Final Year Project, bridging clinical Cognitive Behavioral Therapy (CBT) with modern artificial intelligence.
+            <p className="text-sm sm:text-base text-slate-600 font-['Inter']">
+              Modern Cognitive Behavioral Therapy techniques built into an accessible, responsive web application.
             </p>
           </div>
 
-          {/* Project Pillars Grid */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow space-y-3">
-              <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-bold">
-                <Shield className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">The Problem & Safety</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Generic chatbots validate distorted thinking and hallucinate in crises. Better Me utilizes a fine-tuned BERT Safety Classifier to provide zero-tolerance triage and safe crisis deflection.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow space-y-3">
-              <div className="w-12 h-12 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center font-bold">
-                <Brain className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">Clinical CBT Methodology</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Screens for Beck's 6 cognitive distortions (Catastrophizing, Mind Reading, etc.) and provides an interactive 5-column Socratic Thought Record to test thoughts against hard evidence.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow space-y-3">
-              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-bold">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">Fine-Tuned LLM & Memory</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Powered by a fine-tuned open-source Llama-3 model with a longitudinal clinical memory engine that tracks recurring triggers, past breakthroughs, and belief conviction reductions over time.
-              </p>
-            </div>
-          </div>
-
-          {/* Supervisor & Group Members Presentation */}
-          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-md">
-            <div className="flex flex-col lg:flex-row items-stretch gap-8">
-              {/* Supervisor Spotlight */}
-              <div className="lg:w-1/3 bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-white rounded-2xl p-6 flex flex-col justify-between shadow-md">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 bg-white/20 text-blue-200 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full mb-4">
-                    <Award className="w-3.5 h-3.5" />
-                    Project Supervisor
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-1">Mam Farnaz Akbar</h3>
-                  <p className="text-blue-200 text-xs font-medium">Assistant Professor & FYP Supervisor</p>
-                  <p className="text-slate-300 text-xs mt-4 leading-relaxed">
-                    Under the mentorship and supervision of Mam Farnaz Akbar, providing research direction, clinical ethical oversight, and academic project evaluation.
-                  </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            <Card className="border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#2a5fb7] border border-blue-100">
+                  <Brain className="w-6 h-6" />
                 </div>
-                <div className="pt-6 border-t border-white/10 flex items-center gap-2 text-xs text-blue-200 font-medium">
-                  <BookOpen className="w-4 h-4 text-blue-300" />
-                  Department of Computer Science
-                </div>
-              </div>
-
-              {/* Group Members Grid */}
-              <div className="lg:w-2/3 flex flex-col justify-between space-y-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Users className="w-4 h-4 text-primary" />
-                    <h4 className="text-sm font-bold uppercase tracking-wider text-slate-800">
-                      Project Team Members
-                    </h4>
-                  </div>
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    {/* Member 1: Awais Khan */}
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 hover:border-primary/50 transition-colors">
-                      <div className="w-10 h-10 bg-blue-600 text-white font-bold rounded-lg flex items-center justify-center text-sm mb-3 shadow-sm">
-                        AK
-                      </div>
-                      <h5 className="font-bold text-slate-900 text-sm">Awais Khan</h5>
-                      <p className="text-[11px] text-primary font-semibold mt-0.5">Team Member</p>
-                      <p className="text-[11px] text-slate-500 mt-2 leading-snug">
-                        AI Model Fine-Tuning, BERT Classifiers, & Backend Architecture
-                      </p>
-                    </div>
-
-                    {/* Member 2: Saad Abdullah */}
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 hover:border-primary/50 transition-colors">
-                      <div className="w-10 h-10 bg-purple-600 text-white font-bold rounded-lg flex items-center justify-center text-sm mb-3 shadow-sm">
-                        SA
-                      </div>
-                      <h5 className="font-bold text-slate-900 text-sm">Saad Abdullah</h5>
-                      <p className="text-[11px] text-purple-600 font-semibold mt-0.5">Team Member</p>
-                      <p className="text-[11px] text-slate-500 mt-2 leading-snug">
-                        Full-Stack Development, Supabase Integrations, & UI/UX
-                      </p>
-                    </div>
-
-                    {/* Member 3: Ajiya Asif */}
-                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 hover:border-primary/50 transition-colors">
-                      <div className="w-10 h-10 bg-emerald-600 text-white font-bold rounded-lg flex items-center justify-center text-sm mb-3 shadow-sm">
-                        AA
-                      </div>
-                      <h5 className="font-bold text-slate-900 text-sm">Ajiya Asif</h5>
-                      <p className="text-[11px] text-emerald-600 font-semibold mt-0.5">Team Member</p>
-                      <p className="text-[11px] text-slate-500 mt-2 leading-snug">
-                        CBT Clinical Dataset Curation, Evaluation, & Socratic Prompts
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50/60 border border-blue-200/60 rounded-xl p-3.5 flex items-center justify-between text-xs">
-                  <span className="text-slate-700 font-medium">
-                    Ready to explore the clinical CBT companion?
-                  </span>
-                  <Link to="/register">
-                    <Button size="sm" className="bg-primary hover:bg-primary-dark text-white text-xs h-7 px-3 rounded-lg">
-                      Explore App <ArrowRight className="w-3 h-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-24 bg-slate-50">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              Powerful Features for Better Mental Health
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Evidence-based tools designed to help you identify, challenge, and overcome cognitive distortions.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-primary/5 group">
-              <CardContent className="pt-8 pb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Brain className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  Smart Pattern Detection
+                <h3 className="text-base font-bold text-slate-900">
+                  Smart Distortion Detection
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  AI identifies 6 types of cognitive distortions in real-time, providing instant awareness of unhelpful thinking patterns.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-['Inter']">
+                  Fine-tuned BERT AI screens user reflections in real time for 6 cognitive distortions: Catastrophizing, Mind Reading, Overgeneralization, and more.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-secondary-lighter group">
-              <CardContent className="pt-8 pb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-secondary to-secondary-dark rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <MessageCircle className="w-7 h-7 text-primary-dark" />
+            <Card className="border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 border border-purple-100">
+                  <Scale className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  Therapeutic Conversations
+                <h3 className="text-base font-bold text-slate-900">
+                  CBT Practice Center
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  Engage in structured CBT exercises through natural dialogue, receiving personalized evidence-based guidance.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-['Inter']">
+                  Practice challenging cognitive distortions with 24 dedicated scenarios and 5-step Socratic guided questioning.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-primary/5 group">
-              <CardContent className="pt-8 pb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-primary-light to-secondary rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <TrendingUp className="w-7 h-7 text-white" />
+            <Card className="border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center text-[#0284c7] border border-sky-100">
+                  <Wind className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  Progress Analytics
+                <h3 className="text-base font-bold text-slate-900">
+                  Instant Stress Relief
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  Track your emotional patterns and mental health journey with comprehensive insights and visualization.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-['Inter']">
+                  Interactive distress tolerance suite featuring 4-7-8 rhythmic breathing, 5-4-3-2-1 sensory grounding, and progressive muscle relaxation.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-green-50 group">
-              <CardContent className="pt-8 pb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Shield className="w-7 h-7 text-white" />
+            <Card className="border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 border border-emerald-100">
+                  <TrendingUp className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  Safety First
+                <h3 className="text-base font-bold text-slate-900">
+                  My Learning Progress
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  Built-in emotional risk detection with immediate support resources when concerning patterns emerge.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-['Inter']">
+                  Track completed exercises across all 6 cognitive distortion categories, review past answers, and follow smart recommendations.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-primary/5 group">
-              <CardContent className="pt-8 pb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Clock className="w-7 h-7 text-white" />
+            <Card className="border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-[#2a5fb7] border border-blue-100">
+                  <Shield className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  24/7 Availability
+                <h3 className="text-base font-bold text-slate-900">
+                  Safety Triage & Confidentiality
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  Access therapeutic support whenever you need it—day or night. No appointments, no waiting rooms.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-['Inter']">
+                  Built-in multi-tier safety classifier with localized crisis helplines, privacy protections, and safe therapeutic boundary monitoring.
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-gradient-to-br from-white to-pink-50 group">
-              <CardContent className="pt-8 pb-8">
-                <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Heart className="w-7 h-7 text-white" />
+            <Card className="border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-600 border border-pink-100">
+                  <Heart className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-3">
-                  Compassionate Support
+                <h3 className="text-base font-bold text-slate-900">
+                  Compassionate Socratic Guidance
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  Experience non-judgmental, empathetic guidance designed to be warm, understanding, and encouraging.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-['Inter']">
+                  Empathetic reframing that empowers you to discover your own rational perspectives rather than receiving superficial chatbot replies.
                 </p>
               </CardContent>
             </Card>
@@ -362,195 +361,114 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-24 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary-lighter/30 to-transparent -z-10" />
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              How Better me Works
+      {/* How It Works */}
+      <section className="py-16 sm:py-24 bg-white border-t border-slate-100">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
+          <div className="text-center max-w-xl mx-auto mb-12 sm:mb-16 space-y-2">
+            <span className="text-xs font-bold text-[#2a5fb7] uppercase tracking-wider font-['Inter'] block">
+              Structured CBT Workflow
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              How Better Me Works
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Your journey to healthier thinking patterns starts here, guided by AI-powered CBT principles.
+            <p className="text-xs sm:text-sm text-slate-600 font-['Inter']">
+              Four simple steps from distressing thought to rational equilibrium.
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-              {/* Step 1 */}
-              <div className="relative">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-                      <MessageCircle className="w-8 h-8" />
-                    </div>
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <div className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                      STEP 1
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-900 mb-3">Share Your Thoughts</h3>
-                    <p className="text-slate-600 leading-relaxed">
-                      Express what's on your mind through natural conversation. Write freely—no special format needed.
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/70 space-y-3">
+              <span className="w-8 h-8 rounded-xl bg-[#2a5fb7] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                1
+              </span>
+              <h3 className="font-bold text-slate-900 text-sm">Share Thoughts</h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-['Inter']">
+                Type what you are experiencing in plain language (English or Roman Urdu). No special format needed.
+              </p>
+            </div>
 
-              {/* Step 2 */}
-              <div className="relative">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-gradient-to-br from-secondary to-secondary-dark text-white rounded-2xl flex items-center justify-center shadow-lg shadow-secondary/30">
-                      <Zap className="w-8 h-8 text-primary-dark" />
-                    </div>
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <div className="inline-block bg-secondary/20 text-secondary-dark text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                      STEP 2
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-900 mb-3">AI Analysis</h3>
-                    <p className="text-slate-600 leading-relaxed">
-                      Our system analyzes your message for cognitive distortions like catastrophizing, mind reading, and overgeneralization.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/70 space-y-3">
+              <span className="w-8 h-8 rounded-xl bg-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                2
+              </span>
+              <h3 className="font-bold text-slate-900 text-sm">AI Screening</h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-['Inter']">
+                Fine-tuned models detect cognitive distortions like Catastrophizing, Mind Reading, or Overgeneralization.
+              </p>
+            </div>
 
-              {/* Step 3 */}
-              <div className="relative">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-                      <Target className="w-8 h-8" />
-                    </div>
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <div className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                      STEP 3
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-900 mb-3">Receive Guidance</h3>
-                    <p className="text-slate-600 leading-relaxed">
-                      Get evidence-based CBT responses that help you challenge and reframe unhelpful thoughts into healthier patterns.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/70 space-y-3">
+              <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                3
+              </span>
+              <h3 className="font-bold text-slate-900 text-sm">Socratic Reframe</h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-['Inter']">
+                Receive targeted Socratic prompts to test your assumptions against factual reality.
+              </p>
+            </div>
 
-              {/* Step 4 */}
-              <div className="relative">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green/30">
-                      <Activity className="w-8 h-8" />
-                    </div>
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <div className="inline-block bg-green-50 text-green-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                      STEP 4
-                    </div>
-                    <h3 className="text-xl font-semibold text-slate-900 mb-3">Track Progress</h3>
-                    <p className="text-slate-600 leading-relaxed">
-                      Monitor your emotional patterns and see tangible evidence of your growth through comprehensive analytics.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200/70 space-y-3">
+              <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                4
+              </span>
+              <h3 className="font-bold text-slate-900 text-sm">Track Growth</h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-['Inter']">
+                Review your session logs, belief drops, and emotional baseline stability over weeks.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-slate-50">
-        <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto">
-            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-dark to-secondary rounded-3xl p-12 lg:p-16 shadow-2xl">
-              <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.1))]" />
-
-              <div className="relative z-10 text-center text-white space-y-8">
-                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-6 py-3 border border-white/30">
-                  <Sparkles className="w-5 h-5" />
-                  <span className="font-medium">Join thousands transforming their mental health</span>
-                </div>
-
-                <h2 className="text-4xl lg:text-5xl font-bold leading-tight">
-                  Ready to Transform Your
-                  <span className="block">Thinking Patterns?</span>
-                </h2>
-
-                <p className="text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
-                  Start your journey towards healthier thought patterns and improved mental wellbeing.
-                  Your first step is just a click away.
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                  <Link to="/register">
-                    <Button
-                      size="lg"
-                      className="bg-white text-primary hover:bg-slate-50 shadow-xl px-8 py-6 text-lg group"
-                    >
-                      Get Started Free
-                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                  <Link to="/login">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-2 border-white text-white hover:bg-white/10 px-8 py-6 text-lg backdrop-blur-sm"
-                    >
-                      Sign In
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-white/80">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>No credit card required</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Cancel anytime</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5" />
-                    <span>Secure & confidential</span>
-                  </div>
-                </div>
+      <section className="py-16 sm:py-20 bg-slate-50 border-t border-slate-100">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+          <div className="bg-gradient-to-br from-[#182a4d] via-[#1a4f97] to-[#2a5fb7] rounded-3xl p-8 sm:p-12 text-center text-white space-y-6 shadow-xl relative overflow-hidden">
+            <div className="relative z-10 space-y-4 max-w-xl mx-auto">
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium border border-white/20">
+                <Sparkles className="w-3.5 h-3.5 text-[#b8a1ff]" />
+                <span>Begin Your Mental Well-being Journey</span>
               </div>
 
-              {/* Decorative elements */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-              <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-secondary/30 rounded-full blur-3xl" />
+              <h2 className="text-2xl sm:text-4xl font-bold tracking-tight">
+                Ready to challenge negative thoughts?
+              </h2>
+
+              <p className="text-white/80 text-xs sm:text-sm leading-relaxed font-['Inter']">
+                Build a calmer, more objective mindset with clinically-informed CBT tools.
+              </p>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/register">
+                  <Button size="lg" className="w-full sm:w-auto bg-white text-[#182a4d] hover:bg-slate-100 font-bold px-7 rounded-xl text-sm h-11 shadow-md">
+                    Get Started Free
+                    <ArrowRight className="w-4 h-4 ml-1.5" />
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <button className="w-full sm:w-auto h-11 px-6 rounded-xl text-sm font-semibold text-white bg-white/15 hover:bg-white/25 border border-white/35 backdrop-blur-sm transition-all flex items-center justify-center shadow-xs cursor-pointer">
+                    Sign In to Dashboard
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-white py-12">
-        <div className="container mx-auto px-6">
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <img src={logo} alt="Better Me" className="h-8" />
+      {/* Professional Footer */}
+      <footer className="border-t border-slate-200/80 bg-white py-8">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="Better Me" className="h-7 w-auto" />
             </div>
-            <p className="text-slate-600 max-w-2xl mx-auto">
-              <strong className="text-slate-900">Important:</strong> Better Me is a supportive tool and not a substitute for professional mental health care.
-              If you're experiencing a mental health emergency, please contact emergency services or a crisis helpline immediately.
+            <p className="text-xs text-slate-500 max-w-md font-['Inter']">
+              Better Me is a supportive CBT self-care tool. In case of an acute psychiatric emergency, please dial emergency services (1122 / 988) or reach out to local crisis hotlines.
             </p>
-            <div className="pt-6 border-t space-y-1">
-              <p className="text-xs font-semibold text-slate-800">
-                Final Year Project (FYP): Better Me • Supervised by Mam Farnaz Akbar
-              </p>
-              <p className="text-xs text-slate-600 font-medium">
-                Team Members: Awais Khan • Saad Abdullah • Ajiya Asif
-              </p>
-              <p className="text-[11px] text-slate-400 mt-2">
-                © 2026 Better Me. All rights reserved.
-              </p>
-            </div>
+            <p className="text-xs text-slate-400 font-['Inter']">
+              © 2026 Better Me. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
