@@ -88,6 +88,7 @@ export interface ConversationResponse {
   title: string;
   current_risk_level: string;
   is_archived: boolean;
+  status?: string;
   created_at: string;
   updated_at: string;
 }
@@ -635,28 +636,53 @@ export async function deleteThoughtRecord(recordId: string): Promise<void> {
 export interface SessionReportSummary {
   conversation_id: string;
   report_id: string;
+  status?: string;
   session_number: string;
   session_date: string;
   session_time: string;
-  generated_timestamp: string;
+  generated_timestamp?: string;
   duration_str: string;
   patient_name: string;
-  patient_id: string;
-  patient_email: string;
-  clinical_risk_level: string;
+  patient_id?: string;
+  patient_email?: string;
+  clinical_risk_level?: string;
+  mood?: string;
+  distress_score?: number | null;
+  distress_display?: string;
+  distress_note?: string;
+  presenting_concern?: string;
   presenting_trigger: string;
   automatic_thought: string;
+  distortion_name?: string;
   identified_distortion: string;
   distortion_evidence: string;
   balanced_thought: string;
   homework: string;
   next_session_goal: string;
-  emotions: string[];
-  somatic_symptoms: string[];
+  emotions?: string[];
+  somatic_symptoms?: string | string[];
   self_reported_distress?: string | null;
   total_messages: number;
   user_messages_count: number;
   ai_messages_count: number;
+}
+
+export async function completeConversationSession(conversationId: string): Promise<SessionReportSummary> {
+  const user = getCurrentUser();
+  const userParam = user?.id ? `?user_id=${encodeURIComponent(user.id)}` : "";
+  const response = await fetch(`${getApiBaseUrl()}/conversations/${encodeURIComponent(conversationId)}/complete${userParam}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: "Failed to complete session" }));
+    throw new Error(errorData.detail || `Server responded with status ${response.status}`);
+  }
+
+  return response.json();
 }
 
 export async function downloadSessionReport(conversationId: string, customFilename?: string): Promise<void> {
