@@ -94,17 +94,17 @@ export default function SafetyAlertModal({ open, onOpenChange }: SafetyAlertModa
 
               <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-xs flex flex-col justify-between">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mb-1">
-                    International / USA
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full inline-block mb-1">
+                    Pakistan Federal
                   </span>
-                  <p className="font-semibold text-slate-900 text-sm">988 Suicide & Crisis Lifeline</p>
-                  <p className="text-xs text-slate-600 mb-2">24/7 confidential crisis line</p>
+                  <p className="font-semibold text-slate-900 text-sm">Federal Health Helpline</p>
+                  <p className="text-xs text-slate-600 mb-2">24/7 National Health & Crisis Support</p>
                 </div>
                 <a
-                  href="tel:988"
-                  className="text-xs font-bold text-blue-600 hover:text-blue-700 underline inline-flex items-center gap-1"
+                  href="tel:1166"
+                  className="text-xs font-bold text-teal-600 hover:text-teal-700 underline inline-flex items-center gap-1"
                 >
-                  <Phone className="w-3 h-3" /> Call or Text 988
+                  <Phone className="w-3 h-3" /> Dial 1166
                 </a>
               </div>
             </div>

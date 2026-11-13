@@ -464,7 +464,7 @@ export default function Landing() {
               <img src={logo} alt="Better Me" className="h-7 w-auto" />
             </div>
             <p className="text-xs text-slate-500 max-w-md font-['Inter']">
-              Better Me is a supportive CBT self-care tool. In case of an acute psychiatric emergency, please dial emergency services (1122 / 988) or reach out to local crisis hotlines.
+              Better Me is a supportive CBT self-care tool. In case of an acute psychiatric emergency, please dial emergency services (1122 / 1166) or reach out to local crisis hotlines.
             </p>
             <p className="text-xs text-slate-400 font-['Inter']">
               © 2026 Better Me. All rights reserved.

@@ -396,7 +396,7 @@ export default function OnboardingAssessment() {
                   <ul className="list-disc pl-5 space-y-1">
                     <li>Pakistan Emergency: <strong>1122</strong></li>
                     <li>Umang Mental Health Helpline (Pakistan): <strong>0311-7786264</strong></li>
-                    <li>International Suicide Crisis Lifeline: <strong>988</strong></li>
+                    <li>Federal Health Helpline (Pakistan): <strong>Dial 1166</strong></li>
                   </ul>
                 </div>
 
