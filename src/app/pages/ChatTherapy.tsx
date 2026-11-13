@@ -28,7 +28,6 @@ import {
 import BetterMeLogo from "../../imports/Better_me_Logo.png";
 import SafetyAlertModal from "../components/SafetyAlertModal";
 import ThoughtRecordModal from "../components/ThoughtRecordModal";
-import ServerStatusIndicator from "../components/ServerStatusIndicator";
 import { toast } from "sonner";
 import {
   analyzeUserMessage,
@@ -237,7 +236,7 @@ export default function ChatTherapy() {
         })
         .catch((err) => console.warn("Could not initialize session:", err));
     } else {
-      // Verify that the stored conversation exists on the current active backend (e.g. Kaggle vs Local)
+      // Verify that the stored conversation exists on the current active backend
       getConversationMessages(savedConvId)
         .then((msgs) => {
           if (msgs && msgs.length > 0) {
@@ -448,7 +447,7 @@ export default function ChatTherapy() {
       toast.error(
         error?.message || "Could not connect to Better Me AI. Please ensure the backend is active.",
         {
-          description: "If running on Kaggle GPU, click 'Connect Kaggle GPU' in the top bar to paste your Cloudflare Tunnel URL.",
+          description: "Please check your network connection or ensure the backend server is running.",
           duration: 6000,
         }
       );
@@ -740,7 +739,6 @@ export default function ChatTherapy() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <ServerStatusIndicator />
             <Button
               variant="outline"
               size="sm"

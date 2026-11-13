@@ -46,7 +46,6 @@ import {
   DistortionCategory,
   CBTExerciseItem
 } from "../data/cbtExercisesData";
-import ServerStatusIndicator from "../components/ServerStatusIndicator";
 import { toast } from "sonner";
 
 export default function ThoughtRecords() {
@@ -386,8 +385,6 @@ export default function ThoughtRecords() {
                   </span>
                 </button>
               </div>
-
-              <ServerStatusIndicator />
 
               {/* User Profile Avatar */}
               <div className="flex items-center gap-2 bg-white pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full shadow-xs border border-slate-100">

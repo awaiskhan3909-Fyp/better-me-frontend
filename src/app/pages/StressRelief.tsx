@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import BetterMeLogo from "../../imports/Better_me_Logo.png";
 import MobileBottomNav from "../components/MobileBottomNav";
-import ServerStatusIndicator from "../components/ServerStatusIndicator";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -506,8 +505,6 @@ export default function StressRelief() {
                   Practice Center
                 </Button>
               </Link>
-
-              <ServerStatusIndicator />
 
               <div className="flex items-center gap-2 bg-white pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full shadow-xs border border-slate-100">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-[#2a5fb7] to-[#b8a1ff] text-white font-bold text-xs flex items-center justify-center shadow-xs">

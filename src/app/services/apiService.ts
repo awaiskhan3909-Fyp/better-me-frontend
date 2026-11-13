@@ -1,4 +1,4 @@
-﻿export interface EntityItem {
+export interface EntityItem {
   text: string;
   label: string;
   start?: number;
@@ -272,7 +272,7 @@ export async function checkBackendHealth(targetUrl?: string): Promise<{
   } catch (err: any) {
     return {
       ok: false,
-      error: err?.name === "AbortError" ? "Connection timed out (7s). Please check your Kaggle URL." : (err?.message || "Failed to reach backend"),
+      error: err?.name === "AbortError" ? "Connection timed out (7s). Please check your backend connection." : (err?.message || "Failed to reach backend"),
     };
   }
 }
