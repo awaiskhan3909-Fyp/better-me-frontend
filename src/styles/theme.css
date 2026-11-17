@@ -1,30 +1,94 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --font-family-heading: 'Poppins', sans-serif;
+  --font-family-body: 'Inter', sans-serif;
   --font-family-primary: 'Poppins', sans-serif;
   --font-family-secondary: 'Inter', sans-serif;
   --font-size: 16px;
+
+  /* Typography Scale */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+
+  /* Radius tokens: 8 / 12 / 16 only */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius: 12px;
+
+  /* Shadows: sm / md only */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+
+  /* Spacing: 4px grid */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #2a5fb7;
-  --primary-light: #4a7fd7;
-  --primary-lighter: #6a9ff7;
-  --primary-dark: #1a4f97;
+
+  /* Primary Brand Blue #3A7BD5 & Derived Variants */
+  --primary: #3A7BD5;
+  --primary-light: #5B95E0;
+  --primary-lighter: #A6C8FF;
+  --primary-dark: #2460B8;
+  --primary-darker: #1A498D;
   --primary-foreground: #ffffff;
-  --secondary: #b8a1ff;
-  --secondary-light: #d8c1ff;
-  --secondary-lighter: #f8f1ff;
-  --secondary-dark: #9881df;
-  --secondary-foreground: #030213;
+
+  /* Brand Lavender #B8A1FF */
+  --lavender: #B8A1FF;
+  --lavender-light: #D5C7FF;
+  --lavender-lighter: #F1ECFF;
+  --lavender-dark: #987CE5;
+  --lavender-foreground: #1D153B;
+
+  /* Secondary mapped to Lavender */
+  --secondary: #B8A1FF;
+  --secondary-light: #D5C7FF;
+  --secondary-lighter: #F1ECFF;
+  --secondary-dark: #987CE5;
+  --secondary-foreground: #1D153B;
+
+  /* Brand Mint #6FD3A8 */
+  --mint: #6FD3A8;
+  --mint-light: #9EE4C5;
+  --mint-dark: #43B583;
+  --mint-foreground: #0A3320;
+
+  /* Brand Coral #FF7A7A */
+  --coral: #FF7A7A;
+  --coral-light: #FFA6A6;
+  --coral-dark: #E65555;
+  --coral-foreground: #ffffff;
+
+  /* Brand Light Gray #F5F7FA & Light Blue #A6C8FF */
+  --light-gray: #F5F7FA;
+  --light-blue: #A6C8FF;
+
   --muted: #ececf0;
   --muted-foreground: #717182;
   --accent: #e9ebef;
   --accent-foreground: #030213;
-  --destructive: #d4183d;
+  --destructive: #FF7A7A;
   --destructive-foreground: #ffffff;
   --border: rgba(0, 0, 0, 0.1);
   --input: transparent;
@@ -32,21 +96,21 @@
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: #2a5fb7;
-  --chart-2: #b8a1ff;
-  --chart-3: #4a7fd7;
-  --chart-4: #d8c1ff;
-  --chart-5: #6a9ff7;
+  --ring: #3A7BD5;
+  --chart-1: #3A7BD5;
+  --chart-2: #B8A1FF;
+  --chart-3: #6FD3A8;
+  --chart-4: #FF7A7A;
+  --chart-5: #A6C8FF;
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #2a5fb7;
+  --sidebar-primary: #3A7BD5;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: #3A7BD5;
 }
 
 .dark {
@@ -94,9 +158,32 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-lighter: var(--primary-lighter);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-darker: var(--primary-darker);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
+  --color-secondary-light: var(--secondary-light);
+  --color-secondary-lighter: var(--secondary-lighter);
+  --color-secondary-dark: var(--secondary-dark);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-lavender: var(--lavender);
+  --color-lavender-light: var(--lavender-light);
+  --color-lavender-lighter: var(--lavender-lighter);
+  --color-lavender-dark: var(--lavender-dark);
+  --color-lavender-foreground: var(--lavender-foreground);
+  --color-mint: var(--mint);
+  --color-mint-light: var(--mint-light);
+  --color-mint-dark: var(--mint-dark);
+  --color-mint-foreground: var(--mint-foreground);
+  --color-coral: var(--coral);
+  --color-coral-light: var(--coral-light);
+  --color-coral-dark: var(--coral-dark);
+  --color-light-gray: var(--light-gray);
+  --color-light-blue: var(--light-blue);
+  --font-heading: var(--font-family-heading);
+  --font-body: var(--font-family-body);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -113,10 +200,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
+  --radius: 12px;
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -134,15 +224,19 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-family-primary);
+    font-family: var(--font-family-body);
   }
 
-  p, span, div {
-    font-family: var(--font-family-secondary);
+  p, span, div, a, li, input, textarea, select {
+    font-family: var(--font-family-body);
   }
 
-  h1, h2, h3, h4, h5, h6, button {
-    font-family: var(--font-family-primary);
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-heading);
+  }
+
+  button {
+    font-family: var(--font-family-body);
   }
 
   /**
@@ -152,6 +246,7 @@
 
   html {
     font-size: var(--font-size);
+    scrollbar-gutter: stable;
   }
 
   h1 {
@@ -188,6 +283,7 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
+    font-family: var(--font-family-body);
   }
 
   input {

@@ -1,7 +1,7 @@
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
-import { Toaster } from './components/ui/sonner';
-import Favicon from './components/Favicon';
+import { Toaster } from '../components/ui/sonner';
+import Favicon from '../components/Favicon';
 
 function App() {
   return (
